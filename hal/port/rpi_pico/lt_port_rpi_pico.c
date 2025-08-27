@@ -3,6 +3,8 @@
 #include "libtropic_logging.h"
 #include "libtropic_macros.h"
 #include "libtropic_port.h"
+#include "libtropic_examples.h"
+#include "libtropic_functional_tests.h"
 
 #include "pico/rand.h"
 #include "pico/stdlib.h"
@@ -35,6 +37,7 @@ lt_ret_t lt_port_spi_csn_low(lt_l2_state_t *s2)
 {
     lt_dev_pico *device = (lt_dev_pico *)(s2->device);
     gpio_put(device->cs_pin, 0);
+    while(gpio_get(device->cs_pin));
     return LT_OK;
 }
 
@@ -42,6 +45,7 @@ lt_ret_t lt_port_spi_csn_high(lt_l2_state_t *s2)
 {
     lt_dev_pico *device = (lt_dev_pico *)(s2->device);
     gpio_put(device->cs_pin, 1);
+    while(!gpio_get(device->cs_pin));
     return LT_OK;
 }
 
@@ -49,16 +53,32 @@ lt_ret_t lt_port_init(lt_l2_state_t *s2)
 {
     lt_dev_pico *device = (lt_dev_pico *)(s2->device);
 
+    // int ret;
+
     // Inicializar SPI
     spi_init(device->spi_instance, device->spi_baudrate);
+
+    // while (spi_get_hw(device->spi_instance)->sr & SPI_SSPSR_BSY_BITS) {
+    //     LT_LOG_ERROR("Wait to init SPI, ret=%d", (int)1);
+    // }
+    // if ((uint32_t)ret != device->spi_baudrate) {
+    //     LT_LOG_ERROR("Failed to init SPI, ret=%d", ret);
+    //     LT_LOG_ERROR("Failed to init SPI, baud=%d", (int)device->spi_baudrate);
+    //     return LT_L1_SPI_ERROR;
+    // }
     gpio_set_function(device->pin_miso, GPIO_FUNC_SPI);
     gpio_set_function(device->pin_mosi, GPIO_FUNC_SPI);
     gpio_set_function(device->pin_sck,  GPIO_FUNC_SPI);
 
+    gpio_set_function(device->cs_pin,   GPIO_FUNC_SIO);
+
     // CS como salida
     gpio_init(device->cs_pin);
+    // LT_SPI_CS_CLK_ENABLE();
     gpio_set_dir(device->cs_pin, GPIO_OUT);
     gpio_put(device->cs_pin, 1);
+
+    
 
 #ifdef LT_USE_INT_PIN
     gpio_init(device->int_pin);
@@ -72,6 +92,7 @@ lt_ret_t lt_port_init(lt_l2_state_t *s2)
 lt_ret_t lt_port_deinit(lt_l2_state_t *s2)
 {
     lt_dev_pico *device = (lt_dev_pico *)(s2->device);
+
     spi_deinit(device->spi_instance);
     device->initialized = false;
     return LT_OK;
@@ -86,10 +107,9 @@ lt_ret_t lt_port_spi_transfer(lt_l2_state_t *s2, uint8_t offset, uint16_t tx_dat
         return LT_L1_DATA_LEN_ERROR;
     }
 
-    gpio_put(device->cs_pin, 0);
-    spi_write_read_blocking(device->spi_instance,
-        s2->buff + offset, s2->buff + offset, tx_data_length);
-    gpio_put(device->cs_pin, 1);
+    // gpio_put(device->cs_pin, 0);
+    spi_write_read_blocking(device->spi_instance, s2->buff + offset, s2->buff + offset, tx_data_length);
+    // gpio_put(device->cs_pin, 1);
 
     return LT_OK;
 }
