@@ -11,6 +11,7 @@
 #include "libtropic_common.h"
 #include "lt_aesgcm.h"
 
+
 int lt_aesgcm_init_and_key(void *ctx, const uint8_t *key, uint32_t key_len)
 {
     gcm_ctx *_ctx = (gcm_ctx *)ctx;
