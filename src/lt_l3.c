@@ -38,7 +38,11 @@ lt_ret_t lt_out__session_start(lt_handle_t *h, const pkey_index_t pkey_index, se
     if (ret != LT_OK) {
         return ret;
     }
+
     lt_X25519_scalarmult(state->ehpriv, state->ehpub);
+    if (ret != LT_OK) {
+        return ret;
+    }
 
     // Setup a request pointer to l2 buffer, which is placed in handle
     struct lt_l2_handshake_req_t *p_req = (struct lt_l2_handshake_req_t *)h->l2.buff;

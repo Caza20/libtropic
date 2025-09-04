@@ -6,6 +6,8 @@
  * @license For the license see file LICENSE.txt file in the root directory of this source tree.
  */
 
+ #include <Arduino.h>
+
 #include "libtropic.h"
 
 #include <inttypes.h>
@@ -247,15 +249,18 @@ lt_ret_t lt_get_info_chip_id(lt_handle_t *h, struct lt_chip_id_t *chip_id)
 
     lt_ret_t ret = lt_l2_send(&h->l2);
     if (ret != LT_OK) {
+        LT_LOG_INFO("Fallo send");
         return ret;
     }
     ret = lt_l2_receive(&h->l2);
     if (ret != LT_OK) {
+        LT_LOG_INFO("Fallo receive");
         return ret;
     }
 
     // Check incomming l3 length
     if (LT_L2_GET_INFO_CHIP_ID_SIZE != (p_l2_resp->rsp_len)) {
+        LT_LOG_INFO("Fallo get info chip id size");
         return LT_FAIL;
     }
 
@@ -1429,7 +1434,7 @@ const char *lt_ret_verbose(lt_ret_t ret)
 }
 
 //--------------------------------------------------------------------------------------------------------//
-#ifdef LT_HELPERS
+// #ifdef LT_HELPERS
 
 struct lt_config_obj_desc_t cfg_desc_table[LT_CONFIG_OBJ_CNT] = {
     {"CONFIGURATION_OBJECTS_CFG_START_UP                   ", CONFIGURATION_OBJECTS_CFG_START_UP_ADDR},
@@ -1620,6 +1625,8 @@ lt_ret_t lt_print_bytes(const uint8_t *bytes, const uint16_t length, char *out_b
     return LT_OK;
 }
 
+
+
 lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(const char *format, ...))
 {
     if (!chip_id || !print_func) {
@@ -1634,6 +1641,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
         || 0 > print_func("CHIP_ID ver            = 0x%s (v%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 ")\r\n",
                           print_bytes_buff, chip_id->chip_id_ver[0], chip_id->chip_id_ver[1], chip_id->chip_id_ver[2],
                           chip_id->chip_id_ver[3])) {
+                            LT_LOG_INFO("Fallo 1");
         return LT_FAIL;
     }
 
@@ -1642,6 +1650,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
                               sizeof(print_bytes_buff))
         || 0 > print_func("FL_PROD_DATA           = 0x%s (%s)\r\n", print_bytes_buff,
                           chip_id->fl_chip_info[0] == 0x01 ? "PASSED" : "N/A")) {
+                            LT_LOG_INFO("Fallo 2");
         return LT_FAIL;
     }
 
@@ -1650,6 +1659,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
                               sizeof(print_bytes_buff))
         || 0 > print_func("MAN_FUNC_TEST          = 0x%s (%s)\r\n", print_bytes_buff,
                           chip_id->func_test_info[0] == 0x01 ? "PASSED" : "N/A")) {
+                            LT_LOG_INFO("Fallo 3");
         return LT_FAIL;
     }
 
@@ -1658,6 +1668,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
                               sizeof(print_bytes_buff))
         || 0 > print_func("Silicon rev            = 0x%s (%c%c%c%c)\r\n", print_bytes_buff, chip_id->silicon_rev[0],
                           chip_id->silicon_rev[1], chip_id->silicon_rev[2], chip_id->silicon_rev[3])) {
+                            LT_LOG_INFO("Fallo 4");
         return LT_FAIL;
     }
 
@@ -1665,6 +1676,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
     if (LT_OK
         != lt_print_bytes(chip_id->packg_type_id, sizeof(chip_id->packg_type_id), print_bytes_buff,
                           sizeof(print_bytes_buff))) {
+                            LT_LOG_INFO("Fallo 5");
         return LT_FAIL;
     }
     char packg_type_id_str[17];
@@ -1682,11 +1694,13 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
             break;
     }
     if (0 > print_func("Package ID             = 0x%s (%s)\r\n", print_bytes_buff, packg_type_id_str)) {
+        LT_LOG_INFO("Fallo 6");
         return LT_FAIL;
     }
 
     if (0 > print_func("Prov info ver          = 0x%02" PRIX8 " (v%" PRIu8 ")\r\n", chip_id->prov_ver_fab_id_pn[0],
                        chip_id->prov_ver_fab_id_pn[0])) {
+                        LT_LOG_INFO("Fallo 7");
         return LT_FAIL;
     }
 
@@ -1695,6 +1709,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
         case FAB_ID_TROPIC_SQUARE_LAB:
             if (0
                 > print_func("Fab ID                 = 0x%03" PRIX16 " (%s)\r\n", parsed_fab_id, "Tropic Square Lab")) {
+                    LT_LOG_INFO("Fallo 8");
                 return LT_FAIL;
             }
             break;
@@ -1702,12 +1717,14 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
         case FAB_ID_EPS_BRNO:
             if (0
                 > print_func("Fab ID                 = 0x%03" PRIX16 " (%s)\r\n", parsed_fab_id, "EPS Global - Brno")) {
+                   LT_LOG_INFO("Fallo 9"); 
                 return LT_FAIL;
             }
             break;
 
         default:
             if (0 > print_func("Fab ID         = 0x%03" PRIX16 " (%s)\r\n", parsed_fab_id, "N/A")) {
+                LT_LOG_INFO("Fallo 10");
                 return LT_FAIL;
             }
             break;
@@ -1715,6 +1732,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
 
     uint16_t parsed_short_pn = ((chip_id->prov_ver_fab_id_pn[2] << 8) | (chip_id->prov_ver_fab_id_pn[3])) & 0xfff;
     if (0 > print_func("P/N ID (short P/N)     = 0x%03" PRIX16 "\r\n", parsed_short_pn)) {
+        LT_LOG_INFO("Fallo 11");
         return LT_FAIL;
     }
 
@@ -1722,17 +1740,20 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
             != lt_print_bytes(chip_id->provisioning_date, sizeof(chip_id->provisioning_date), print_bytes_buff,
                               sizeof(print_bytes_buff))
         || 0 > print_func("Prov date              = 0x%s \r\n", print_bytes_buff)) {
+            LT_LOG_INFO("Fallo 12");
         return LT_FAIL;
     }
 
     if (LT_OK != lt_print_bytes(chip_id->hsm_ver, sizeof(chip_id->hsm_ver), print_bytes_buff, sizeof(print_bytes_buff))
         || 0 > print_func("HSM HW/FW/SW ver       = 0x%s\r\n", print_bytes_buff)) {
+            LT_LOG_INFO("Fallo 13");
         return LT_FAIL;
     }
 
     if (LT_OK
             != lt_print_bytes(chip_id->prog_ver, sizeof(chip_id->prog_ver), print_bytes_buff, sizeof(print_bytes_buff))
         || 0 > print_func("Programmer ver         = 0x%s\r\n", print_bytes_buff)) {
+            LT_LOG_INFO("Fallo 14");
         return LT_FAIL;
     }
 
@@ -1740,6 +1761,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
             != lt_print_bytes((uint8_t *)&chip_id->ser_num, sizeof(chip_id->ser_num), print_bytes_buff,
                               sizeof(print_bytes_buff))
         || 0 > print_func("S/N                    = 0x%s\r\n", print_bytes_buff)) {
+            LT_LOG_INFO("Fallo 15");
         return LT_FAIL;
     }
 
@@ -1751,6 +1773,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
             != lt_print_bytes(chip_id->part_num_data, sizeof(chip_id->part_num_data), print_bytes_buff,
                               sizeof(print_bytes_buff))
         || 0 > print_func("P/N (long)             = 0x%s (%s)\r\n", print_bytes_buff, pn_data)) {
+            LT_LOG_INFO("Fallo 16");
         return LT_FAIL;
     }
 
@@ -1759,6 +1782,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
                               sizeof(print_bytes_buff))
         || 0 > print_func("Prov template ver      = 0x%s (v%" PRIu8 ".%" PRIu8 ")\r\n", print_bytes_buff,
                           chip_id->prov_templ_ver[0], chip_id->prov_templ_ver[1])) {
+                            LT_LOG_INFO("Fallo 17");
         return LT_FAIL;
     }
 
@@ -1766,6 +1790,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
             != lt_print_bytes(chip_id->prov_templ_tag, sizeof(chip_id->prov_templ_tag), print_bytes_buff,
                               sizeof(print_bytes_buff))
         || 0 > print_func("Prov template tag      = 0x%s\r\n", print_bytes_buff)) {
+            LT_LOG_INFO("Fallo 18");
         return LT_FAIL;
     }
 
@@ -1774,6 +1799,7 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
                               sizeof(print_bytes_buff))
         || 0 > print_func("Prov specification ver = 0x%s (v%" PRIu8 ".%" PRIu8 ")\r\n", print_bytes_buff,
                           chip_id->prov_spec_ver[0], chip_id->prov_spec_ver[1])) {
+                            LT_LOG_INFO("Fallo 19");
         return LT_FAIL;
     }
 
@@ -1781,12 +1807,14 @@ lt_ret_t lt_print_chip_id(const struct lt_chip_id_t *chip_id, int (*print_func)(
             != lt_print_bytes(chip_id->prov_spec_tag, sizeof(chip_id->prov_spec_tag), print_bytes_buff,
                               sizeof(print_bytes_buff))
         || 0 > print_func("Prov specification tag = 0x%s\r\n", print_bytes_buff)) {
+            LT_LOG_INFO("Fallo 20");
         return LT_FAIL;
     }
 
     if (LT_OK
             != lt_print_bytes(chip_id->batch_id, sizeof(chip_id->batch_id), print_bytes_buff, sizeof(print_bytes_buff))
         || 0 > print_func("Batch ID               = 0x%s\r\n", print_bytes_buff)) {
+            LT_LOG_INFO("Fallo 21");
         return LT_FAIL;
     }
 
@@ -1836,4 +1864,4 @@ lt_ret_t lt_do_mutable_fw_update(lt_handle_t *h, const uint8_t *update_data, con
 
     return LT_OK;
 }
-#endif
+// #endif

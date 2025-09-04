@@ -8,9 +8,19 @@
  *
  * @license For the license see file LICENSE.md file in the root directory of this source tree.
  */
-
+//? ------------------------------------------------------------------------
 /** @brief Wrapper for static assertion. */
-#define STATIC_ASSERT(x) _Static_assert((x), "Static assertion failed");
+
+// #define STATIC_ASSERT(x) _Static_assert((x), "Static assertion failed")
+
+
+#ifdef __cplusplus
+    #define STATIC_ASSERT(x) static_assert((x), "Static assertion failed")
+#else
+    #define STATIC_ASSERT(x) _Static_assert((x), "Static assertion failed")
+#endif
+
+//? ------------------------------------------------------------------------
 
 /** @brief Get struct member size at compile-time. */
 #define MEMBER_SIZE(type, member) (sizeof(((type *)0)->member))

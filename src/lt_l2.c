@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "libtropic_common.h"
+#include "libtropic.h"
 #include "lt_crc16.h"
 #include "lt_l1.h"
 #include "lt_l2_api_structs.h"
@@ -66,6 +67,7 @@ lt_ret_t lt_l2_receive(lt_l2_state_t *s2)
     if (ret != LT_OK) {
         return ret;
     }
+    
 
     ret = lt_l2_frame_check(s2->buff);
 

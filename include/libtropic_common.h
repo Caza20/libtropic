@@ -79,7 +79,7 @@ STATIC_ASSERT(
         MEMBER_SIZE(struct lt_l3_gen_frame_t, cmd_size) +
         MEMBER_SIZE(struct lt_l3_gen_frame_t, data)
     )
-)
+);
 /** \endcond */
 /** \endcond */
 // clang-format on
@@ -295,7 +295,7 @@ STATIC_ASSERT(
         MEMBER_SIZE(struct lt_ser_num_t, x_coord) + 
         MEMBER_SIZE(struct lt_ser_num_t, y_coord)
     )
-)
+);
 /** \endcond */
 // clang-format on
 
@@ -439,7 +439,7 @@ STATIC_ASSERT(
         MEMBER_SIZE(struct lt_chip_id_t, rfu_3) + 
         MEMBER_SIZE(struct lt_chip_id_t, rfu_4)
     )
-)
+);
 /** \endcond */
 // clang-format on
 
@@ -491,7 +491,7 @@ STATIC_ASSERT(
         MEMBER_SIZE(struct header_boot_v1_t, git_hash) + 
         MEMBER_SIZE(struct header_boot_v1_t, hash)
     )
-)
+);
 /** \endcond */
 // clang-format on
 
@@ -537,7 +537,7 @@ STATIC_ASSERT(
         MEMBER_SIZE(struct header_boot_v2_t, hash) +
         MEMBER_SIZE(struct header_boot_v2_t, pair_version)
     )
-)
+);
 /** \endcond */
 // clang-format on
 

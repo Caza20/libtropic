@@ -24,6 +24,7 @@
 // TBD
 #endif
 
+#include "lt_hmac_sha256.h"
 #include "libtropic_macros.h"
 #include "lt_hkdf.h"
 

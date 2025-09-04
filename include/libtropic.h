@@ -615,8 +615,8 @@ lt_ret_t lt_mcounter_get(lt_handle_t *h, const enum lt_mcounter_index_t mcounter
 lt_ret_t lt_mac_and_destroy(lt_handle_t *h, mac_and_destroy_slot_t slot, const uint8_t *data_out, uint8_t *data_in);
 
 /** @} */  // end of libtropic_API group
-
-#ifdef LT_HELPERS
+//?-------------------------------------------------------------------------------
+// #ifdef LT_HELPERS
 /**
  * @defgroup libtropic_API_helpers libtropic API helpers
  * @brief These functions are usually wrappers around one or more TROPIC01 commands, beside `lt_ret_verbose()` and
@@ -753,4 +753,4 @@ lt_ret_t lt_do_mutable_fw_update(lt_handle_t *h, const uint8_t *update_data, con
 /** @} */  // end of libtropic_API_helpers group
 #endif
 
-#endif
+// #endif
