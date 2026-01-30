@@ -468,3 +468,71 @@ endif()
 if(LT_SEPARATE_L3_BUFF)
     target_compile_definitions(tropic PUBLIC LT_SEPARATE_L3_BUFF)
 endif()
+
+
+##################################################
+# =========================
+# Trezor Crypto (embedded subset)
+# =========================
+
+set(TREZOR_CRYPTO_SRC
+    # --- AES / GCM ---
+    vendor/trezor_crypto/aes/aesgcm.c
+    vendor/trezor_crypto/aes/aesccm.c
+    vendor/trezor_crypto/aes/aescrypt.c
+    vendor/trezor_crypto/aes/aes_modes.c
+    vendor/trezor_crypto/aes/aestab.c
+    vendor/trezor_crypto/aes/aeskey.c
+    vendor/trezor_crypto/aes/gf128mul.c
+
+    vendor/trezor_crypto/hasher.c
+    vendor/trezor_crypto/blake256.c
+    vendor/trezor_crypto/blake2b.c
+    vendor/trezor_crypto/groestl.c
+    vendor/trezor_crypto/sha2.c
+    vendor/trezor_crypto/sha3.c
+    vendor/trezor_crypto/ripemd160.c
+    vendor/trezor_crypto/memzero.c
+    vendor/trezor_crypto/hmac.c
+
+    # --- Curve25519 ---
+    vendor/trezor_crypto/ed25519-donna/curve25519-donna-32bit.c
+    vendor/trezor_crypto/ed25519-donna/curve25519-donna-helpers.c
+    vendor/trezor_crypto/ed25519-donna/ed25519-donna-impl-base.c
+    vendor/trezor_crypto/ed25519-donna/ed25519.c
+
+    # --- Ed25519 ---
+    vendor/trezor_crypto/ed25519-donna/ed25519-keccak.c
+    vendor/trezor_crypto/ed25519-donna/ed25519-sha3.c
+    vendor/trezor_crypto/ed25519-donna/modm-donna-32bit.c
+    vendor/trezor_crypto/ed25519-donna/curve25519-donna-scalarmult-base.c
+
+    vendor/trezor_crypto/ed25519-donna/ed25519-donna-32bit-tables.c
+    vendor/trezor_crypto/ed25519-donna/ed25519-donna-basepoint-table.c
+
+    vendor/trezor_crypto/rand.c
+    vendor/trezor_crypto/ecdsa.c
+    vendor/trezor_crypto/nist256p1.c
+    vendor/trezor_crypto/bignum.c
+    vendor/trezor_crypto/rfc6979.c
+    vendor/trezor_crypto/address.c
+    vendor/trezor_crypto/base58.c
+    vendor/trezor_crypto/secp256k1.c
+    vendor/trezor_crypto/hmac_drbg.c
+)
+
+target_sources(tropic PRIVATE
+    ${TREZOR_CRYPTO_SRC}
+)
+
+target_include_directories(tropic PRIVATE
+    vendor/trezor_crypto
+    vendor/trezor_crypto/aes
+    vendor/trezor_crypto/ed25519-donna
+)
+
+target_compile_definitions(tropic PRIVATE
+    LT_USE_TREZOR_CRYPTO
+    AES_VAR
+    USE_INSECURE_PRNG
+)
