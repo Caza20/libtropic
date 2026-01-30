@@ -6,11 +6,11 @@ cmake_minimum_required(VERSION 3.21.0)
 #                                                                         #
 ###########################################################################
 
-include(cmake/strict_compile_flags.cmake)
+include(CheckSymbolExists)
+include(CheckIncludeFiles)
+# Used in the tropic01_model/CMakeLists.txt and platform repositories
+include(cmake/coverage_flags.cmake)
 
-option(LT_USE_TREZOR_CRYPTO "Use trezor_crypto as a cryptography provider" OFF)
-option(LT_CRYPTO_MBEDTLS "Use mbedtls as a cryptography provider" OFF)
-option(LT_BUILD_DOCS "Build documentation" OFF)
 option(LT_BUILD_EXAMPLES "Compile example code as part of libtropic library" OFF)
 option(LT_BUILD_TESTS "Compile functional tests' code as part of libtropic library" OFF)
 # This switch controls if helper utilities are compiled in. In most cases this should be ON,
@@ -22,74 +22,115 @@ option(LT_HELPERS "Compile helper function" ON)
 option(LT_USE_INT_PIN "Use INT pin instead of polling for TROPIC01's response" OFF)
 option(LT_SEPARATE_L3_BUFF "Define L3 buffer separately out of the handle" OFF)
 option(LT_PRINT_SPI_DATA "Print SPI communication to console, used to debug low level communication" OFF)
-option(LT_STRICT_COMP_FLAGS "Enable strict compilation flags for libtropic" OFF)
-option(LT_ASAN "Enable AddressSanitizer (ASan)" OFF)
-option(LT_VALGRIND "Enable Valgrind" OFF)
 
-# Define the ASAN flags here so they are not duplicated.
-set(LT_ASAN_COMPILE_FLAGS "-fsanitize=address,leak,undefined;-fno-omit-frame-pointer;-g"
-    CACHE INTERNAL "Robust compile flags for Sanitizers (ASan, LSan, UBSan)")
+# Select pairing keys written during manufacturing into your TROPIC01
+set(LT_SH0_KEYS "prod0" CACHE STRING "Choose which pairing keys in slot 0 will be used in examples/tests")
+set_property(CACHE LT_SH0_KEYS PROPERTY STRINGS "eng_sample" "prod0")
 
-set(LT_ASAN_LINK_FLAGS "-fsanitize=address,leak,undefined;-static-libasan"
-    CACHE INTERNAL "Link flags for Sanitizers (ASan, LSan, UBSan)")
+if(LT_BUILD_TESTS OR LT_BUILD_EXAMPLES)
+    # These are internal macros for selecting SH0 keys (examples/tests)
+    set(LT_USE_SH0_ENG_SAMPLE 0 CACHE INTERNAL "")
+    set(LT_USE_SH0_PROD0      0 CACHE INTERNAL "")
 
-set(DEFAULT_LAB_BATCH_PKG_DIR
-    "2025-06-27T07-51-29Z__prod_C2S_T200__provisioning__lab_batch_package/"
-    CACHE STRING
-    "Default lab batch package directory"
-)
-set(LT_SH0_PRIV_PATH_DEFAULT "${CMAKE_CURRENT_SOURCE_DIR}/provisioning_data/${DEFAULT_LAB_BATCH_PKG_DIR}sh0_key_pair/sh_x25519_private_key_2025-03-24T09-15-15Z.pem")
-set(LT_SH0_PRIV_PATH
-    "${LT_SH0_PRIV_PATH_DEFAULT}"
-    CACHE FILEPATH
-    "Path to file with SH0 private key in PEM or DER format (only used when LT_BUILD_EXAMPLES or LT_BUILD_TESTS set)"
-)
-
-# Check if cryptography provider is defined
-if(
-    (NOT LT_BUILD_DOCS)        AND
-    (NOT LT_USE_TREZOR_CRYPTO) AND
-    (NOT LT_CRYPTO_MBEDTLS)
-)
-    message(FATAL_ERROR "No cryptography provider is defined.")
+    # Define SH0 macros based on selected string (examples/tests)
+    if(LT_SH0_KEYS STREQUAL "eng_sample")
+        message(STATUS "Using Engineering sample keys in examples/tests")
+        set(LT_USE_SH0_ENG_SAMPLE 1)
+        set(LT_USE_SH0_PROD0      0)
+    elseif(LT_SH0_KEYS STREQUAL "prod0")
+        message(STATUS "Using Production 0 keys in examples/tests")
+        set(LT_USE_SH0_ENG_SAMPLE 0)
+        set(LT_USE_SH0_PROD0      1)
+    else()
+        get_property(lt_sh0_keys_choices CACHE LT_SH0_KEYS PROPERTY STRINGS)
+        message(FATAL_ERROR "Incorrect SH0 keys for examples/tests specified: '${LT_SH0_KEYS}'\nAvailable SH0 keys: ${lt_sh0_keys_choices}")
+    endif()
+else()
+    message(STATUS "Skipping SH0 key selection (examples/tests not enabled)")
 endif()
 
-###########################################################################
-#                                                                         #
-#   Define files for firmware update.                                     #
-#                                                                         #
-#   For more info about firmware update go into                           #
-#   TROPIC01_fw_update_files/README.md                                    #
-#                                                                         #
-#   [1] Define LT_SILICON_REV, allowed                                    #
-#       values are:                                                       #
-#           ABAB - Silicon revision B - Bootloader v1.0.1                 #
-#           ACAB - Silicon revision C - Bootloader v2.0.1                 #
-#                                                                         #
-#   [2] Define firmware files here, allowed values are:                   #
-#       APP: 1_0_0                                                        #
-#       SPECT: Use version in folder next to application firmware update  #
-#                                                                         #
-#    Always use bundled versions from "TROPIC01_fw_update_files" folder!  #
-#                                                                         #
-###########################################################################
+# TROPIC01 silicon revision: useful for firmware update and functional tests
+# (as some behavior) differ between revisions.
+set(LT_SILICON_REV "ACAB" CACHE STRING "Set TROPIC01 silicon revision")
+set_property(CACHE LT_SILICON_REV PROPERTY STRINGS "ABAB" "ACAB")
 
-set(LT_SILICON_REV "ACAB")
-set(LT_CPU_FW_VERSION "1_0_0")
+# Choose version of RISC-V FW to update to.
+# Available versions can be seen in the compatibility table in the main README.md.
+# Default value is always the latest version available in the current Libtropic release.
+set(LT_CPU_FW_UPDATE_DATA_VER "2_0_0" CACHE STRING "Set TROPIC01 FW version to update to")
+set_property(CACHE LT_CPU_FW_UPDATE_DATA_VER PROPERTY STRINGS "1_0_0" "1_0_1" "2_0_0")
+# Validate specified version
+get_property(lt_cpu_fw_ver_choices CACHE LT_CPU_FW_UPDATE_DATA_VER PROPERTY STRINGS)
+set(cpu_fw_valid FALSE)
+foreach(cpu_fw_choice IN LISTS lt_cpu_fw_ver_choices)
+    if(LT_CPU_FW_UPDATE_DATA_VER STREQUAL ${cpu_fw_choice})
+        set(cpu_fw_valid TRUE)
+        break()
+    endif()
+endforeach()
+if (NOT cpu_fw_valid)
+    message(FATAL_ERROR "Invalid TROPIC01 FW version: '${LT_CPU_FW_UPDATE_DATA_VER}'\nAvailable FW versions: ${lt_cpu_fw_ver_choices}")
+endif()
 
-###########################################################################
-#                                                                         #
-#   Building documentation                                                #
-#                                                                         #
-###########################################################################
+# Logging options
+set(LT_LOG_LVL "" CACHE STRING "Set log level")
+set_property(CACHE LT_LOG_LVL PROPERTY STRINGS "None" "Error" "Warning" "Info" "Debug")
 
-if(LT_BUILD_DOCS)
-    find_package(Doxygen REQUIRED)
-    if(Doxygen_FOUND)
-        add_subdirectory(docs)
-        message(STATUS "Doxygen found, enabled documentation building.")
+# Use INFO logging level when building tests/examples
+if(LT_BUILD_TESTS OR LT_BUILD_EXAMPLES)
+    if(NOT LT_LOG_LVL)
+        message(STATUS "No logging level specified, defaulting to INFO for tests/examples.")
+        set(LT_LOG_LVL "Info" CACHE BOOL "Set log level to INFO." FORCE)
     endif()
 endif()
+
+# These are internal macros for enabling the logging macros
+# Default: all logging disabled
+set(LT_LOG_ENABLE_INFO  0 CACHE INTERNAL "")
+set(LT_LOG_ENABLE_WARN  0 CACHE INTERNAL "")
+set(LT_LOG_ENABLE_ERROR 0 CACHE INTERNAL "")
+set(LT_LOG_ENABLE_DEBUG 0 CACHE INTERNAL "")
+
+# Set logging ENABLE flags based on selected logging level
+if(LT_LOG_LVL STREQUAL "Debug")
+    message(STATUS "Log level set to DEBUG")
+    set(LT_LOG_ENABLE_DEBUG 1)
+    set(LT_LOG_ENABLE_INFO  1)
+    set(LT_LOG_ENABLE_WARN  1)
+    set(LT_LOG_ENABLE_ERROR 1)
+
+elseif(LT_LOG_LVL STREQUAL "Info")
+    message(STATUS "Log level set to INFO")
+    set(LT_LOG_ENABLE_DEBUG 0)
+    set(LT_LOG_ENABLE_INFO  1)
+    set(LT_LOG_ENABLE_WARN  1)
+    set(LT_LOG_ENABLE_ERROR 1)
+
+elseif(LT_LOG_LVL STREQUAL "Warning")
+    message(STATUS "Log level set to WARNING")
+    set(LT_LOG_ENABLE_DEBUG 0)
+    set(LT_LOG_ENABLE_INFO  0)
+    set(LT_LOG_ENABLE_WARN  1)
+    set(LT_LOG_ENABLE_ERROR 1)
+
+elseif(LT_LOG_LVL STREQUAL "Error")
+    message(STATUS "Log level set to ERROR")
+    set(LT_LOG_ENABLE_DEBUG 0)
+    set(LT_LOG_ENABLE_INFO  0)
+    set(LT_LOG_ENABLE_WARN  0)
+    set(LT_LOG_ENABLE_ERROR 1)
+elseif(LT_LOG_LVL STREQUAL "None")
+    message(STATUS "Log level set to NONE (logging is disabled)")
+elseif(NOT LT_LOG_LVL)
+    message(STATUS "No logging level specified, defaulting to NONE (logging is disabled)")
+else()
+    get_property(lt_log_lvl_choices CACHE LT_LOG_LVL PROPERTY STRINGS)
+    message(FATAL_ERROR "Incorrect logging level specified: '${LT_LOG_LVL}'\nAvailable logging levels: ${lt_log_lvl_choices}")
+endif()
+
+# Check whether compiling standalone (e.g. as a library) or as a child project (= has parent scope)
+# and save result to HAS_PARENT_SCOPE.
+get_directory_property(HAS_PARENT_SCOPE PARENT_DIRECTORY)
 
 ###########################################################################
 #                                                                         #
@@ -103,48 +144,37 @@ endif()
 ###########################################################################
 
 project(libtropic_SDK
-        VERSION 1.0.0
+        VERSION 2.0.0
         DESCRIPTION "TROPIC01 software development kit"
         HOMEPAGE_URL "www.tropicsquare.com"
         LANGUAGES C)
-
-##########
-# CRYPTO #
-##########
-set(SDK_SRCS ${SDK_SRCS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/hal/crypto/trezor_crypto/lt_crypto_trezor_aesgcm.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/hal/crypto/trezor_crypto/lt_crypto_trezor_ed25519.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/hal/crypto/trezor_crypto/lt_crypto_trezor_ecdsa.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/hal/crypto/trezor_crypto/lt_crypto_trezor_sha256.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/hal/crypto/trezor_crypto/lt_crypto_trezor_x25519.c
-)
-
-# --- add new crypto sources above this line ---
 
 ###########################################################################
 # Libtropic core functions                                                #
 ###########################################################################
 set(SDK_SRCS ${SDK_SRCS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/keys/keys.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/libtropic.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_crc16.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l1_port_wrap.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l1.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l2.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/libtropic_l2.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l2_frame_check.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l3_process.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l3.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/libtropic_l3.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_hkdf.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_random.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_asn1_der.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/libtropic_default_sh0_keys.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_tr01_attrs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_secure_memzero.c
 )
 
 set(SDK_INCS ${SDK_INCS}
     ${CMAKE_CURRENT_SOURCE_DIR}/include/libtropic_common.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/libtropic.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/libtropic_port.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/lt_l2.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/lt_l3.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/libtropic_l2.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/libtropic_l3.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_crc16.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l1_port_wrap.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l1.h
@@ -171,16 +201,17 @@ if (LT_SILICON_REV STREQUAL "ABAB")
 elseif (LT_SILICON_REV STREQUAL "ACAB")
     set(BL_FOLDER boot_v_2_0_1)
 else()
-    message(FATAL_ERROR "Invalid silicon revision (LT_SILICON_REV): ${LT_SILICON_REV}")
+    get_property(lt_silicon_rev_choices CACHE LT_SILICON_REV PROPERTY STRINGS)    
+    message(FATAL_ERROR "Invalid silicon revision: '${LT_SILICON_REV}'\nAvailable silicon revisions: ${lt_silicon_rev_choices}")
 endif()
 
 set(SDK_INCS ${SDK_INCS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/TROPIC01_fw_update_files/${BL_FOLDER}/fw_v_${LT_CPU_FW_VERSION}/fw_CPU.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/TROPIC01_fw_update_files/${BL_FOLDER}/fw_v_${LT_CPU_FW_VERSION}/fw_SPECT.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/TROPIC01_fw_update_files/${BL_FOLDER}/fw_v_${LT_CPU_FW_UPDATE_DATA_VER}/fw_CPU.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/TROPIC01_fw_update_files/${BL_FOLDER}/fw_v_${LT_CPU_FW_UPDATE_DATA_VER}/fw_SPECT.h
 )
 
 set(SDK_DIRS_PUB ${SDK_DIRS_PUB}
-    ${CMAKE_CURRENT_SOURCE_DIR}/TROPIC01_fw_update_files/${BL_FOLDER}/fw_v_${LT_CPU_FW_VERSION}/
+    ${CMAKE_CURRENT_SOURCE_DIR}/TROPIC01_fw_update_files/${BL_FOLDER}/fw_v_${LT_CPU_FW_UPDATE_DATA_VER}/
 )
 
 
@@ -197,8 +228,10 @@ set(LIBTROPIC_EXAMPLE_LIST
     lt_ex_fw_update
 )
 
-# Export example list to parent project (usually platform-specific implementation).
-set(LIBTROPIC_EXAMPLE_LIST ${LIBTROPIC_EXAMPLE_LIST} PARENT_SCOPE)
+# Export example list to parent project (usually platform-specific implementation) if parent project exists.
+if (HAS_PARENT_SCOPE)
+    set(LIBTROPIC_EXAMPLE_LIST ${LIBTROPIC_EXAMPLE_LIST} PARENT_SCOPE)
+endif()
 
 if(LT_BUILD_EXAMPLES)
     set(SDK_SRCS ${SDK_SRCS}
@@ -270,8 +303,10 @@ set(LIBTROPIC_TEST_LIST
     lt_test_rev_get_log_req
 )
 
-# Export test list to parent project (usually platform-specific implementation).
-set(LIBTROPIC_TEST_LIST ${LIBTROPIC_TEST_LIST} PARENT_SCOPE)
+# Export test list to parent project (usually platform-specific implementation) if parent project exists.
+if (HAS_PARENT_SCOPE)
+    set(LIBTROPIC_TEST_LIST ${LIBTROPIC_TEST_LIST} PARENT_SCOPE)
+endif()
 
 # Create a test registry based on the test list above. This test registry is then included
 # in platform-specific main.c.
@@ -329,53 +364,38 @@ if(LT_BUILD_TESTS)
     )
 endif()
 
-# Only add key generation logic if examples or tests are being compiled
-if (LT_BUILD_EXAMPLES OR LT_BUILD_TESTS)
-
-    if (LT_SH0_PRIV_PATH STREQUAL "")
-        message(FATAL_ERROR "LT_SH0_PRIV_PATH must be set when LT_BUILD_EXAMPLES or LT_BUILD_TESTS is enabled.")
-    endif()
-
-    if (LT_SH0_PRIV_PATH STREQUAL LT_SH0_PRIV_PATH_DEFAULT)
-        message(STATUS "Using default LT_SH0_PRIV_PATH:\n${LT_SH0_PRIV_PATH}")
-    endif()
-
-    set(SH0_PRIV_RAW_FILE "${CMAKE_BINARY_DIR}/sh0_priv.bin")
-    set(SH0_PUB_RAW_FILE "${CMAKE_BINARY_DIR}/sh0_pub.bin")
-    set(KEYS_C_FILE "${CMAKE_BINARY_DIR}/sh0_keys.c")
-    set(EXTRACT_KEY_DATA_PYTHON_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/scripts/extract_x25519_key_data.py")
-
-    add_custom_command(
-        OUTPUT ${SH0_PRIV_RAW_FILE} ${SH0_PUB_RAW_FILE}
-        COMMAND python3 ${EXTRACT_KEY_DATA_PYTHON_SCRIPT} --priv-key ${LT_SH0_PRIV_PATH} --priv-out ${SH0_PRIV_RAW_FILE} --pub-out ${SH0_PUB_RAW_FILE}
-        DEPENDS "${EXTRACT_KEY_DATA_PYTHON_SCRIPT}" "${LT_SH0_PRIV_PATH}"
-        COMMENT "Extracting raw data from X25519 private key"
-        VERBATIM
-    )
-
-    add_custom_command(
-        OUTPUT "${KEYS_C_FILE}"
-        COMMAND ${CMAKE_COMMAND}
-                -DSH0_PRIV_RAW_PATH=${SH0_PRIV_RAW_FILE}
-                -DSH0_PUB_RAW_PATH=${SH0_PUB_RAW_FILE}
-                -DOUTPUT_C_FILE=${KEYS_C_FILE}
-                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_sh0_keys.cmake"
-        DEPENDS "${SH0_PRIV_RAW_FILE}" "${SH0_PUB_RAW_FILE}"
-        COMMENT "Generating sh0_keys.c from DER files"
-        VERBATIM
-    )
-
-
-    # Ensure the tropic target depends on the generated file
-    list(APPEND SDK_SRCS "${KEYS_C_FILE}")
-endif()
-
 add_library(tropic ${SDK_SRCS} ${SDK_INCS})
 
 target_include_directories(tropic PRIVATE ${SDK_DIRS_PRIV})
 target_include_directories(tropic PUBLIC ${SDK_DIRS_PUB})
 
-target_compile_definitions(tropic PRIVATE "$<$<CONFIG:DEBUG>:LIBT_DEBUG>")
+# Compiler flags: These are an internal implementation detail.
+# They are needed to build the library's own object files correctly.
+# 'PRIVATE' applies them only to the 'tropic' target itself.
+target_compile_options(tropic PRIVATE -ffunction-sections -fdata-sections)
+# Linker flags: This is a usage requirement for any consumer.
+# The final executable that links against 'tropic' needs this flag.
+# 'INTERFACE' propagates this requirement to the consumer without
+# applying it to the library target itself.
+target_link_options(tropic INTERFACE -Wl,--gc-sections)
+
+target_compile_definitions(tropic PRIVATE "$<$<CONFIG:DEBUG>:LT_REDUNDANT_ARG_CHECK>")
+
+# Propagate SH0 macros (examples/tests)
+if(LT_BUILD_TESTS OR LT_BUILD_EXAMPLES)
+    target_compile_definitions(tropic PUBLIC
+        LT_USE_SH0_ENG_SAMPLE=${LT_USE_SH0_ENG_SAMPLE}
+        LT_USE_SH0_PROD0=${LT_USE_SH0_PROD0}
+    )
+endif()
+
+# Propagate logging settings
+target_compile_definitions(tropic PUBLIC
+    LT_LOG_ENABLE_DEBUG=${LT_LOG_ENABLE_DEBUG}
+    LT_LOG_ENABLE_ERROR=${LT_LOG_ENABLE_ERROR}
+    LT_LOG_ENABLE_WARN=${LT_LOG_ENABLE_WARN}
+    LT_LOG_ENABLE_INFO=${LT_LOG_ENABLE_INFO}
+)
 
 ###########################################################################
 #                                                                         #
@@ -383,23 +403,49 @@ target_compile_definitions(tropic PRIVATE "$<$<CONFIG:DEBUG>:LIBT_DEBUG>")
 #                                                                         #
 ###########################################################################
 
-# Conditionally apply strict compilation flags
-if(LT_STRICT_COMP_FLAGS OR LT_BUILD_EXAMPLES OR LT_BUILD_TESTS)
-
-    # 1. Apply the compiler options immediately.
-    # This is the primary action of this block.
-    target_link_libraries(tropic PRIVATE libtropic::strict_comp_flags)
-
-    # 2. Handle the cache variable for user visibility.
-    # If the flag wasn't already ON, it means tests/examples implicitly enabled it.
-    # We update the cache so the user sees the actual state in cmake-gui.
-    if(NOT LT_STRICT_COMP_FLAGS)
-        message(STATUS "Enabling strict compilation flags for libtropic because LT_BUILD_EXAMPLES or LT_BUILD_TESTS is ON.")
-        set(LT_STRICT_COMP_FLAGS ON CACHE BOOL "Enable strict compilation flags for libtropic" FORCE)
-    endif()
-
+if(LT_TEST_COVERAGE)
+    message(STATUS "Enabling coverage collection for libtropic")
+    target_link_libraries(tropic PRIVATE libtropic::coverage_flags)
 endif()
 
+# Handle definitions for safe memory zeroing functions
+set(SECURE_ZERO_FUNCS
+    "memset_explicit"
+    "explicit_bzero"
+    "explicit_memset"
+    "memset_s"
+)
+
+# Ensure C11 safe functions are exposed if available
+target_compile_definitions(tropic PRIVATE __STDC_WANT_LIB_EXT1__=1)
+
+check_include_files("strings.h" LT_HAVE_STRINGS_H)
+if(LT_HAVE_STRINGS_H)
+    set(headers_to_check "string.h;strings.h")
+    target_compile_definitions(tropic PRIVATE LT_HAVE_STRINGS_H)
+else()
+    set(headers_to_check "string.h")
+endif()
+
+foreach(secure_zero_func ${SECURE_ZERO_FUNCS})
+    # Generate a variable name (e.g. LT_HAVE_MEMSET_S)
+    string(TOUPPER "${secure_zero_func}" secure_zero_func_upper)
+    set(secure_zero_func_macro "LT_HAVE_${secure_zero_func_upper}")
+
+    # Check if the symbol exists
+    check_symbol_exists(${secure_zero_func} "${headers_to_check}" ${secure_zero_func_macro})
+
+    # If it exists, pass it to the compiler definitions
+    if(${secure_zero_func_macro})
+        target_compile_definitions(tropic PRIVATE ${secure_zero_func_macro})
+    endif()
+endforeach()
+
+###########################################################################
+#                                                                         #
+#   Other options handling                                                #
+#                                                                         #
+###########################################################################
 
 if (LT_SILICON_REV STREQUAL "ABAB")
     target_compile_definitions(tropic PRIVATE ABAB)
@@ -411,21 +457,14 @@ if(LT_PRINT_SPI_DATA)
     target_compile_definitions(tropic PRIVATE LT_PRINT_SPI_DATA)
 endif()
 
-if(LT_USE_TREZOR_CRYPTO)
-    add_subdirectory(vendor/trezor_crypto/ "trezor_crypto")
-    target_compile_definitions(trezor_crypto PRIVATE AES_VAR USE_INSECURE_PRNG)
-    target_link_libraries(tropic PRIVATE trezor_crypto)
-    target_compile_definitions(tropic PRIVATE LT_USE_TREZOR_CRYPTO)
-endif()
-
 if(LT_HELPERS)
     target_compile_definitions(tropic PUBLIC LT_HELPERS)
 endif()
 
 if(LT_USE_INT_PIN)
-    target_compile_definitions(tropic PRIVATE LT_USE_INT_PIN)
+    target_compile_definitions(tropic PUBLIC LT_USE_INT_PIN)
 endif()
 
 if(LT_SEPARATE_L3_BUFF)
-    target_compile_definitions(tropic PRIVATE LT_SEPARATE_L3_BUFF)
+    target_compile_definitions(tropic PUBLIC LT_SEPARATE_L3_BUFF)
 endif()

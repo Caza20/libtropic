@@ -5,6 +5,242 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0]
+
+### Changed
+- Refactored crypto HAL.
+- Refactored `trezor_crypto` HAL.
+- Reworked handling of pairing keys:
+  - All default pairing keys for slot 0 are now available from `libtropic_common.h`. As a result, a dependency on Python `cryptography` package was removed.
+  - Keys for other slots (that are used by examples and tests) are defined only in examples/tests that need them.
+  - `provisioning_data/` moved to `tropic01_model/`, as they are not needed anymore when not working with the model.
+- `tropic01_model/`: don't compile unsupported examples.
+- Moved crypto HAL code outside of `hal/crypto/` to `cal/` and started reffering to crypto HAL as CAL (Crypto Abstraction Layer).
+- Refactored compilation of CALs and supported crypto libraries (details in the [Add to an Existing Project](https://tropicsquare.github.io/libtropic/latest/get_started/integrating_libtropic/how_to_build/adding_to_project/) section of the libtropic documentation):
+  - Libtropic can be built as a static library without CALs or crypto libraries (replaced compile-time crypto type macros with runtime polymorphism using the `crypto_ctx` void pointer contained in `lt_l3_state_t`).
+  - Crypto libraries are no longer in the `vendor/` directory (besides copy of `trezor_crypto/` for quick testing purposes). Providing the crypto library is now the consumer's responsibility.
+  - CAL API was refactored to be compatible with the new `crypto_ctx` structure.
+  - For testing purposes, quick switching of supported crypto libraries was implemented in the `tropic01_model/` CMake project.
+- Moved contents of `hal/port/` into `hal/`.
+- Moved TCP and USB dongle port into `hal/posix/`.
+- Moved Linux SPI port into `hal/linux/`.
+- Refactored platform HAL compilation.
+- Renamed `lt_dev_stm32_nucleo_f439zi` to `lt_dev_stm32_nucleo_f439zi_t`.
+- Added sections **Supported Host Platforms** and **Supported Cryptographic Functionality Providers** into **Other** section in the Libtropic documentation.
+- Added dependencies on [micro-ecc](https://github.com/kmackay/micro-ecc) and [ed25519](https://github.com/orlp/ed25519/tree/master) repositories in functional tests (for verification of signatures calculated by TROPIC01).
+- Updated L3 result values according to Application FW 1.1.0:
+  - Renaming of `lt_ret_t` values:
+    - `LT_L3_PAIRING_KEY_EMPTY` to `LT_L3_SLOT_EMPTY`.
+    - `LT_L3_PAIRING_KEY_INVALID` to `LT_L3_SLOT_INVALID`.
+    - `LT_L3_ECC_INVALID_KEY` to `LT_L3_INVALID_KEY`.
+    - `LT_L3_R_MEM_DATA_WRITE_WRITE_FAIL` to `LT_L3_SLOT_NOT_EMPTY`.
+    - `LT_L3_R_MEM_DATA_WRITE_SLOT_EXPIRED` to `LT_L3_SLOT_EXPIRED`.
+    - `LT_L3_MCOUNTER_UPDATE_UPDATE_ERR` to `LT_L3_UPDATE_ERR`.
+- Renamed `LT_L2_STATUS_NOT_RECOGNIZED` to `LT_L2_STATUS_UNKNOWN`.
+- `lt_l3_decrypt_response()` returns `LT_L3_RESULT_UNKNOWN` instead of `LT_FAIL` if the L3 result value is unknown.
+- Moved `LT_ASAN` CMake option from Libtropic's CMakeLists.txt to the model's CMakeLists.txt.
+- Renamed `LT_STRICT_COMP_FLAGS` to `LT_STRICT_COMPILATION`, moved it from Libtropic's CMakeLists.txt to the model's CMakeLists.txt and set it ON by default.
+- TCP HAL: removed `rng_seed` from `struct lt_dev_posix_tcp_t`. In the case of the TROPIC01 model, the PRNG is seeded in `tropic01_model/main.c`.
+- Linux SPI HAL: remove `rng_seed` from `struct lt_dev_linux_spi_t` and use `getrandom()` in `lt_port_random_bytes()`.
+- POSIX USB Dongle HAL: remove `rng_seed` from `struct lt_dev_posix_usb_dongle_t` and use `getentropy()` in `lt_port_random_bytes()`.
+- STM32 F439ZI HAL: Removed the RNG initialization, now it is the user's responsibility.
+- STM32 F439ZI HAL: Changed `rng_handle` type in `lt_dev_stm32_nucleo_f439zi_t` to a pointer (`RNG_HandleTypeDef*`).
+- New return value `LT_REBOOT_UNSUCCESSFUL` returned by `lt_reboot` function, which now checks if TROPIC01 is in correct mode after the reboot.
+- Examples: Refactored and cleaned up `lt_ex_show_chip_id_and_fwver` and `lt_ex_fw_update` logic to use the new version of the `lt_reboot` function.
+- Meaning of `lt_tr01_mode_t` enum values. Now, this enum is supposed to be used with the new `lt_get_tr01_mode` function.
+- CMake: Renamed `LT_CPU_FW_VERSION` to `LT_CPU_FW_UPDATE_DATA_VER` to make it more clear that it is used for the FW version to update to.
+
+### Added
+- Possibility to measure test coverage with the TROPIC01 model.
+- Documentation: section **Default Pairing Keys for a Secure Channel Handshake** in Get Started
+- GitHub action to run examples against TROPIC01 model (only the supported ones).
+- Replaced `TR01_L3_RES_SIZE_SIZE` and `TR01_L3_CMD_SIZE_SIZE` with `TR01_L3_SIZE_SIZE`.
+- Renamed `TR01_L3_CYPHERTEXT_MAX_SIZE` to `TR01_L3_CIPHERTEXT_MAX_SIZE`.
+- Renamed `LT_L2_DATA_LEN_ERROR` to `LT_L2_RSP_LEN_ERROR`.
+- New generic size macros: `TR01_L3_RESULT_SIZE`, `TR01_L3_CMD_CIPHERTEXT_MAX_SIZE`, `TR01_L3_RES_CIPHERTEXT_MAX_SIZE`.
+- Size macros for L3 results.
+- New return values (`lt_ret_t`): `LT_L3_RES_SIZE_ERROR`, `LT_L3_BUFFER_TOO_SMALL`.
+- L3 buffer size check  to `lt_init` and internal functions.
+- Finished interrupt pin support:
+  - In HALs that don't support it, raise compilation error.
+  - Implement support in Unix SPI HAL.
+- Support for MbedTLS v4 crypto backend.
+- `enum lt_ret_t`:
+  - `LT_L3_RESULT_UNKNOWN` for unknown L3 result values from TROPIC01.
+  - `LT_L3_HARDWARE_FAIL` to reflect the new L3 result value from TROPIC01.
+- HAL port for Arduino framework.
+- `lt_get_tr01_mode` function to get current mode (`lt_tr01_mode_t`) of TROPIC01. This function is a replacement for `lt_update_mode`.
+
+### Fixed
+- `lt_ex_show_chip_id_and_fwver`: reboot back to Application mode in the end.
+- Compilation if `LT_USE_INT_PIN` is set from CMake.
+- TROPIC01 Model: apply ASan to libtropic if `LT_ASAN` is defined.
+
+### Removed
+- `TR01_L3_ID_SIZE` (redundant to `TR01_L3_CMD_ID_SIZE`).
+- Functions `lt_ecc_ecdsa_sig_verify()` and `lt_ecc_eddsa_sig_verify()`.
+  - Reason: They don't use any TROPIC01's functionality and are an unneccessary wrapper.
+  - Consequences:
+    - CAL was simplified, there are less requirements on CFP (ECDSA and EdDSA not required from now).
+    - Libtropic's dependency on ed25519 was removed.
+    - Signature verification was removed from the HW wallet example.
+    - Users should verify the signatures themselves e.g., using functions provided by their crypto library.
+- `lt_update_mode` function.
+
+## [2.0.1]
+
+### Added
+- Mentioned compatibility of libtropic 2.0.0 and 2.0.1 with FW 1.0.0 and Bootloader v2.0.1 in the main README.md compatibility table.
+- Row in the compatibility table for libtropic 2.0.1.
+- Section about TROPIC01 firmware in the documentation.
+
+### Fixed
+- Handling of `add` argument in the Mac-And-Destroy example (`lt_ex_macandd.c`): `NULL` can be passed, `memcpy()` will not be called with `NULL` argument and no additional data will be used in the M&D sequence.
+- Set newest available FW version in CMakeLists.txt.
+- CMakeLists.txt: use `set()` for string options, enhance validating of their values
+
+## [2.0.0]
+
+### Changed
+- Mac And Destroy example - lt_PIN_set renamed to lt_new_PIN_setup() and accepts master secret, example provides separate interfaces for encrypt() and decrypt() operations, lt_PIN_check renamed to lt_PIN_entry_check() to reflect naming in app note, MAc And Destroy example refactored
+- Changed prefixes of all platform HAL files to `libtropic_`.
+- `lt_l2.h`, `lt_l2.c`, `lt_l3.h`, `lt_l3.c`: change prefix to `libtropic_`.
+- Renamed `LIBT_DEBUG` to `LT_REDUNDANT_ARG_CHECK`, as it is used only for the redundant argument checks.
+- Changed/added prefix `TR01_` to all macros and enum values, if they directly relate to TROPIC01 (see below).
+- Changed/added prefix `LT_` to all macros and enum values, if they directly relate to libtropic (see below).
+- Renamed `ecc_key_origin_t` to `lt_ecc_key_origin_t`.
+- Renamed `bank_id_t` to `lt_bank_id_t`.
+- Renamed `header_boot_v1_t` to `lt_header_boot_v1_t`.
+- Renamed `header_boot_v2_t` to `lt_header_boot_v2_t`.
+- Renamed `pkey_index_t` to `lt_pkey_index_t`.
+- Renamed `session_state_t` to `lt_session_state_t`.
+- Renamed `LT_L2_SLEEP_KIND_SLEEP` to `TR01_L2_SLEEP_KIND_SLEEP`.
+- Renamed `LT_MODE_APP` to `TR01_MODE_APP`.
+- Renamed `LT_MODE_APP` to `TR01_MODE_APP`.
+- Renamed `LT_MODE_MAINTENANCE` to `TR01_MODE_MAINTENANCE`.
+- Renamed `GET_LOG_MAX_MSG_LEN` to `TR01_GET_LOG_MAX_MSG_LEN`.
+- Renamed `RANDOM_VALUE_GET_LEN_MAX` to `TR01_RANDOM_VALUE_GET_LEN_MAX`.
+- Renamed `MCOUNTER_INDEX_x` to `TR01_MCOUNTER_INDEX_x`.
+- Renamed `MAC_AND_DESTROY_SLOT_x` to `TR01_MAC_AND_DESTROY_SLOT_x`.
+- Renamed `SERIAL_CODE_SIZE` to `TR01_SERIAL_CODE_SIZE`.
+- Renamed `CHIP_MODE_READY_bit` to `TR01_L1_CHIP_MODE_READY_bit`.
+- Renamed `CHIP_MODE_ALARM_bit` to `TR01_L1_CHIP_MODE_ALARM_bit`.
+- Renamed `CHIP_MODE_STARTUP_bit` to `TR01_L1_CHIP_MODE_STARTUP_bit`.
+- Renamed `GET_RESPONSE_REQ_ID` to `TR01_L1_GET_RESPONSE_REQ_ID`.
+- Renamed `pairing_key_slot_t` to `lt_pairing_key_slot_t`.
+- Renamed `CONFIGURATION_OBJECTS_REGS` to `lt_config_obj_addr_t`.
+- Renamed `CONFIGURATION_OBJECTS_REGS_IDX` to `lt_config_obj_idx_t`.
+- Renamed `ecc_slot_t` to `lt_ecc_slot_t`.
+- Renamed `mac_and_destroy_slot_t` to `lt_mac_and_destroy_slot_t`.
+- Renamed `CONFIGURATION_OBJECTS_CFG_xx` enums to `TR01_CFG_xx`.
+- Renamed `PAIRING_KEY_SLOT_INDEX_x` to `TR01_PAIRING_KEY_SLOT_INDEX_x`.
+- Renamed `ECC_SLOT_x` to `TR01_ECC_SLOT_x`.
+- Renamed `CURVE_ED25519` to `TR01_CURVE_ED25519`.
+- Renamed `SESSION_x` to `LT_SECURE_SESSION_x`.
+- Renamed `L3_CYPHERTEXT_MAX_SIZE` to `TR01_L3_CYPHERTEXT_MAX_SIZE`.
+- Renamed `L3_PACKET_MAX_SIZE` to `TR01_L3_PACKET_MAX_SIZE`.
+- Renamed `FW_BANK_x` to `TR01_FW_BANK_x`.
+- Renamed `LT_L2_GET_INFO_FW_HEADER_SIZE` to `TR01_L2_GET_INFO_FW_HEADER_SIZE`.
+- Renamed `LT_L2_GET_INFO_RISCV_FW_SIZE` to `TR01_L2_GET_INFO_RISCV_FW_SIZE`.
+- Renamed `LT_L2_GET_INFO_SPECT_FW_SIZE` to `TR01_L2_GET_INFO_SPECT_FW_SIZE`.
+- Renamed `LT_MODE_x` to `TR01_MODE_x`.
+- Renamed `UNUSED(x)` to `LT_UNUSED(x)`.
+- Renamed `LT_L1_LEN_MAX` to `TR01_L1_LEN_MAX`.
+- Renamed `DEVICE_PATH_MAX_LEN` to `LT_DEVICE_PATH_MAX_LEN`.
+- Renamed `unix_tcp_tag_t` to `lt_unix_tcp_tag_t`.
+- Renamed `unix_tcp_buffer_t` to `lt_unix_tcp_buffer_t`.
+- Renamed `LT_L2_GET_INFO_CHIP_ID_SIZE` to `TR01_L2_GET_INFO_CHIP_ID_SIZE`.
+- Renamed `CHIP_PKG_BARE_SILICON_ID` to `TR01_CHIP_PKG_BARE_SILICON_ID`
+- Renamed `CHIP_PKG_QFN32_ID` to `TR01_CHIP_PKG_QFN32_ID`
+- Renamed `FAB_ID_TROPIC_SQUARE_LAB` to `TR01_FAB_ID_TROPIC_SQUARE_LAB`
+- Renamed `FAB_ID_EPS_BRNO` to `TR01_FAB_ID_EPS_BRNO`
+- Renamed `LT_L2_GET_INFO_FW_HEADER_SIZE_BOOT_V1` to `TR01_L2_GET_INFO_FW_HEADER_SIZE_BOOT_V1`
+- Renamed `LT_L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2` to `TR01_L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2`
+- Renamed `LT_L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2_EMPTY_BANK` to `TR01_L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2_EMPTY_BANK`
+- Renamed `LT_MUTABLE_FW_UPDATE_SIZE_MAX` to `TR01_MUTABLE_FW_UPDATE_SIZE_MAX`.
+- Renamed `LT_MUTABLE_FW_UPDATE_SIZE_MAX` to `TR01_MUTABLE_FW_UPDATE_SIZE_MAX`.
+- Renamed `R_MEM_DATA_SIZE_MIN` to `TR01_R_MEM_DATA_SIZE_MIN`.
+- Renamed `R_MEM_DATA_SIZE_MAX` to `TR01_R_MEM_DATA_SIZE_MAX`.
+- Renamed `MCOUNTER_VALUE_MAX` to `TR01_MCOUNTER_VALUE_MAX`.
+- Renamed `CHIP_ID_FIELD_MAX_SIZE` to `LT_CHIP_ID_FIELD_MAX_SIZE`.
+- Renamed `LT_TROPIC01_REBOOT_DELAY_MS` to `LT_TR01_REBOOT_DELAY_MS`.
+- Renamed `LT_L2_GET_INFO_REQ_CERT_SIZE_SINGLE` to `TR01_L2_GET_INFO_REQ_CERT_SIZE_SINGLE`.
+- Renamed `LT_L2_GET_INFO_CHIP_ID_SIZE` to `TR01_L2_GET_INFO_CHIP_ID_SIZE`.
+- Renamed `SERIAL_CODE_SIZE` to `TR01_SERIAL_CODE_SIZE`.
+- Renamed `TO_PAIRING_KEY_SH0` to `LT_TO_PAIRING_KEY_SH0`.
+- Renamed `TO_LT_MCOUNTER_x` to `LT_TO_LT_MCOUNTER_x`.
+- Renamed `TO_ECC_KEY_SLOT_x` to `LT_TO_ECC_KEY_SLOT_x`.
+- Renamed `TO_MACANDD_SLOT_x` to `LT_TO_MACANDD_SLOT_x`.
+- Renamed `SESSION_SH0_HAS_ACCESS` to `LT_SESSION_SH0_HAS_ACCESS`.
+- Renamed `SESSION_SH1_HAS_ACCESS` to `LT_SESSION_SH1_HAS_ACCESS`.
+- Renamed `SESSION_SH2_HAS_ACCESS` to `LT_SESSION_SH2_HAS_ACCESS`.
+- Renamed `SESSION_SH3_HAS_ACCESS` to `LT_SESSION_SH3_HAS_ACCESS`.
+- Renamed `PING_LEN_MAX` to `LT_PING_LEN_MAX`.
+- Renamed `R_MEM_DATA_SIZE_x` to `TR01_R_MEM_DATA_SIZE_x`.
+- Renamed `L2_STATUS_REQUEST_OK` to `TR01_L2_STATUS_REQUEST_OK`.
+- Renamed `L2_STATUS_RESULT_OK` to `TR01_L2_STATUS_RESULT_OK`.
+- Renamed `L2_STATUS_REQUEST_CONT` to `TR01_L2_STATUS_REQUEST_CONT`.
+- Renamed `L2_STATUS_RESULT_CONT` to `TR01_L2_STATUS_RESULT_CONT`.
+- Renamed `L2_STATUS_RESP_DISABLED` to `TR01_L2_STATUS_RESP_DISABLED`.
+- Renamed `L2_STATUS_HSK_ERR` to `TR01_L2_STATUS_HSK_ERR`.
+- Renamed `L2_STATUS_NO_SESSION` to `TR01_L2_STATUS_NO_SESSION`.
+- Renamed `L2_STATUS_TAG_ERR` to `TR01_L2_STATUS_TAG_ERR`.
+- Renamed `L2_STATUS_CRC_ERR` to `TR01_L2_STATUS_CRC_ERR`.
+- Renamed `L2_STATUS_UNKNOWN_ERR` to `TR01_L2_STATUS_UNKNOWN_ERR`.
+- Renamed `L2_STATUS_GEN_ERR` to `TR01_L2_STATUS_GEN_ERR`.
+- Renamed `L2_STATUS_NO_RESP` to `TR01_L2_STATUS_NO_RESP`.
+- Renamed `L3_RESULT_OK` to `TR01_L3_RESULT_OK`
+- Renamed `L3_RESULT_FAIL` to `TR01_L3_RESULT_FAIL`
+- Renamed `L3_RESULT_UNAUTHORIZED` to `TR01_L3_RESULT_UNAUTHORIZED`
+- Renamed `L3_RESULT_INVALID_CMD` to `TR01_L3_RESULT_INVALID_CMD`
+- Renamed `L3_ECC_INVALID_KEY` to `TR01_L3_ECC_INVALID_KEY`
+- Renamed `L3_PAIRING_KEY_EMPTY` to `TR01_L3_PAIRING_KEY_EMPTY`
+- Renamed `L3_PAIRING_KEY_INVALID` to `TR01_L3_PAIRING_KEY_INVALID`
+- Renamed `L3_R_MEM_DATA_WRITE_WRITE_FAIL` to `TR01_L3_R_MEM_DATA_WRITE_WRITE_FAIL`
+- Renamed `L3_R_MEM_DATA_WRITE_SLOT_EXPIRED` to `TR01_L3_R_MEM_DATA_WRITE_SLOT_EXPIRED`
+- Renamed `L3_MCOUNTER_UPDATE_ERROR` to `TR01_L3_MCOUNTER_UPDATE_ERROR`
+- Renamed `L3_MCOUNTER_COUNTER_INVALID` to `TR01_L3_MCOUNTER_COUNTER_INVALID`
+- Renamed other macros and definitions used internally.
+- Changed type of the first parameter of `lt_random_bytes` to `lt_handle_t`.
+- Replaced various numeric constants with appropriate macro constants and sizeof operators.
+- `lt_get_info_fw_bank()`: Renamed parameter `max_len` to `max_size`.
+- `lt_get_log_req()`: Renamed parameter `log_msg_len` to `read_size`.
+- `lt_r_mem_data_read()`: Renamed parameter `size` to `read_size`.
+- Added new CMake option `LT_CRYPTO` for selecing crypto provider with a string, renamed `LT_USE_TREZOR_CRYPTO` to `LT_CRYPTO_TREZOR`.
+- Reworked the documentation using the MkDocs framework.
+- Renamed `lt_session_state_t` to `lt_host_eph_keys_t`.
+- Renamed `lt_secure_session_state_t` to `lt_secure_session_status_t`.
+- Renamed `lt_l3_state_t.session` to `lt_l3_state_t.session_status`.
+- Added `enum lt_startup_id_t` for the purpose of `lt_reboot()` -> renamed `TR01_MODE_APP` to `TR01_REBOOT` and `TR01_MODE_MAINTENANCE` to `TR01_MAINTENANCE_REBOOT` (to be more compliant with User API).
+- Added `enum lt_tr01_mode_t` to track the current mode TROPIC01 is in.
+
+### Added
+- CMake option for setting logging verbosity level: `LT_LOG_LVL`.
+- Compiler and linker flags to delete unused sections.
+- Macro `MCOUNTER_VALUE_MAX` for the maximal allowed value of monotonic counter.
+- CMake option for selecting silicon revision: `LT_SILICON_REV`.
+- Constants for length of Secure Channel handshake/pairing keys, ephemeral keys and AES256 key.
+- Constants for length of P256 and ED25519 private and public keys.
+- Constant for length of ECDSA/EDDSA signature.
+- Constants for lengths of L2 request fields (ID, LEN, CRC).
+- `lt_get_info_fw_bank()`: Parameter `read_size` to indicate the number of read bytes from the FW bank.
+- `lt_get_log_req()`: Parameter `max_size` to check whether the output buffer is big enough.
+- `lt_r_mem_data_read()`: Parameter `max_size` to check whether the output buffer is big enough.
+- `lt_ecc_key_read()`: Parameter `max_size` to check whether the output buffer is big enough.
+- Created `lt_crypto_trezor_hmac_sha256.c` and moved definition of `lt_hmac_sha256()` there.
+
+### Fixed
+- `lt_r_mem_data_write()`, `lt_out__r_mem_data_write()`: Mark `data` as `const`.
+- `lt_mcounter_init()`: Allow `mcounter_value` only from range 0-`MCOUNTER_VALUE_MAX`.
+- Overflow bug in `hal/port/unix/libtropic_port_unix_usb_dongle.c`.
+
+### Removed
+- Unused `pairing_key_slot_t` enum.
+- `lt_get_st_pub()`: Parameter `stpub_len`.
+- Building the documentation from the root `CMakeLists.txt`.
+- Ceedling unit tests.
+- `LT_STATIC` macro.
+
 ## [1.0.0]
 
 ### Changed

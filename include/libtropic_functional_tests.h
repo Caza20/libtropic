@@ -2,7 +2,7 @@
 #define LT_LIBTROPIC_FUNC_TESTS_H
 
 /**
- * @defgroup libtropic_funct_tests libtropic functional tests
+ * @defgroup libtropic_funct_tests 3. Functional Tests
  * @brief Test all libtropic main API functions.
  * @{
  */
@@ -10,7 +10,7 @@
 /**
  * @file libtropic_functional_tests.h
  * @brief Functions with functional tests used internally for testing behaviour of TROPIC01 chip
- * @author Tropic Square s.r.o.
+ * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
  * @license For the license see file LICENSE.txt file in the root directory of this source tree.
  */
@@ -18,6 +18,10 @@
 #include <stdint.h>
 
 #include "libtropic_common.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 extern lt_ret_t (*lt_test_cleanup_function)(void);
 
@@ -72,20 +76,13 @@ void lt_assert_fail_handler(void);
         LT_LOG_INFO("TEST FINISHED!"); \
     }
 
-#ifndef LT_EXAMPLE_TEST_KEYS_DECLARED
-#define LT_EXAMPLE_TEST_KEYS_DECLARED
-extern uint8_t sh0priv[];
-extern uint8_t sh0pub[];
-
-extern uint8_t sh1priv[];
-extern uint8_t sh1pub[];
-
-extern uint8_t sh2priv[];
-extern uint8_t sh2pub[];
-
-extern uint8_t sh3priv[];
-extern uint8_t sh3pub[];
-#endif  // LT_EXAMPLE_TEST_KEYS_DECLARED
+#if LT_USE_SH0_ENG_SAMPLE
+#define LT_TEST_SH0_PRIV sh0priv_eng_sample
+#define LT_TEST_SH0_PUB sh0pub_eng_sample
+#elif LT_USE_SH0_PROD0
+#define LT_TEST_SH0_PRIV sh0priv_prod0
+#define LT_TEST_SH0_PUB sh0pub_prod0
+#endif
 
 /**
  * @brief Non-test function to dump bytes in 8 byte rows.
@@ -122,7 +119,7 @@ int chip_id_printf_wrapper(const char *format, ...);
  *  9. Sign message with each erased slot and check for fail.
  *  10. Do steps 2-9, but instead of storing the key, generate it.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_eddsa_sign(lt_handle_t *h);
 
@@ -141,7 +138,7 @@ void lt_test_rev_eddsa_sign(lt_handle_t *h);
  *  9. Sign message with each erased slot and check for fail.
  *  10. Do steps 2-9, but instead of storing the key, generate it.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_ecdsa_sign(lt_handle_t *h);
 
@@ -159,12 +156,12 @@ void lt_test_rev_ecdsa_sign(lt_handle_t *h);
  *  8. Invalidate all pairing key slots.
  *  9. Read and write all pairing key slots and check for failure.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_ire_pairing_key_slots(lt_handle_t *h);
 
 /**
- * @brief Test Ping L3 command with random data of random length <= PING_LEN_MAX.
+ * @brief Test Ping L3 command with random data of random length <= TR01_PING_LEN_MAX.
  *
  * Test steps:
  *  1. Start Secure Session with pairing key slot 0.
@@ -174,7 +171,7 @@ void lt_test_ire_pairing_key_slots(lt_handle_t *h);
  *  5. Check if the same data were received.
  *  6. Repeat steps 2-5 PING_MAX_LOOPS times.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_ping(lt_handle_t *h);
 
@@ -195,7 +192,7 @@ void lt_test_rev_ping(lt_handle_t *h);
  *      - if the random length is 0, check that read fails (slot empty).
  *  10. Erase all slots and check that reading fails.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_r_mem(lt_handle_t *h);
 
@@ -208,7 +205,7 @@ void lt_test_rev_r_mem(lt_handle_t *h);
  *  3. Erase the R-Config and check it.
  *  4. Restore the R-Config and check it.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_erase_r_config(lt_handle_t *h);
 
@@ -220,7 +217,7 @@ void lt_test_rev_erase_r_config(lt_handle_t *h);
  *  2. Secure Session can be estabilished multiple times without aborting a previous existing Session.
  *  3. Secure Session can be aborted multiple times, even though there is no session.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_handshake_req(lt_handle_t *h);
 
@@ -234,7 +231,7 @@ void lt_test_rev_handshake_req(lt_handle_t *h);
  * 3. Try to set all counters with known value and check that no counter was assigned
  *    wrong value.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_mcounter(lt_handle_t *h);
 
@@ -248,7 +245,7 @@ void lt_test_rev_mcounter(lt_handle_t *h);
  *  4. Get RISC-V FW version and print it to log.
  *  5. Get SPECT FW version and print it to log.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_get_info_req_app(lt_handle_t *h);
 
@@ -265,7 +262,7 @@ void lt_test_rev_get_info_req_app(lt_handle_t *h);
  *  7. Read all FW banks and based on the bootloader version (1.0.1 or 2.0.1), print it to log.
  *  8. Reboot back to Application mode.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_get_info_req_bootloader(lt_handle_t *h);
 
@@ -276,7 +273,7 @@ void lt_test_rev_get_info_req_bootloader(lt_handle_t *h);
  *  1. Start Secure Session with pairing key slot 0.
  *  2. Read the whole I-config.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_read_i_config(lt_handle_t *h);
 
@@ -288,7 +285,7 @@ void lt_test_rev_read_i_config(lt_handle_t *h);
  *  2. Write the whole I-Config with random data.
  *  3. Read the whole I-Config and check that it was written.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_ire_write_i_config(lt_handle_t *h);
 
@@ -299,7 +296,7 @@ void lt_test_ire_write_i_config(lt_handle_t *h);
  *  1. Start Secure Session with pairing key slot 0.
  *  2. Read the whole R-config.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_read_r_config(lt_handle_t *h);
 
@@ -314,7 +311,7 @@ void lt_test_rev_read_r_config(lt_handle_t *h);
  *    the resend works as intended.
  * 5. Reboot into Maintenance mode and do steps 2-4 again.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_resend_req(lt_handle_t *h);
 
@@ -330,7 +327,7 @@ void lt_test_rev_resend_req(lt_handle_t *h);
  * @note There is no cleanup, as the chip does not have to be woken up. It is woken up automatically
  *       by any L2 request.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_sleep_req(lt_handle_t *h);
 
@@ -338,17 +335,17 @@ void lt_test_rev_sleep_req(lt_handle_t *h);
  * @brief Test L2 Startup Request.
  *
  * Test steps:
- *  1. Check the chip is in the normal mode.
- *  2. Reboot to normal mode and check -- verify that standard reboot is working.
+ *  1. Reboot to normal mode and check.
+ *  2. Reboot to normal mode again and check.
  *  3. Reboot to bootloader mode and check.
- *  4. Reboot to bootloader mode again.
+ *  4. Reboot to bootloader mode again and check.
  *  5. Reboot to normal mode and check.
  *
  * After each reboot before mode check, the test will wait until the chip is ready.
  * Mode check is done by reading SPECT FW version. The bootloader returns highest bit set to '1'
  * for each FW version.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_startup_req(lt_handle_t *h);
 
@@ -363,7 +360,7 @@ void lt_test_rev_startup_req(lt_handle_t *h);
  *  5. Write the whole R-Config again and check for an error.
  *  6. Restore the R-Config and check it.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_write_r_config(lt_handle_t *h);
 
@@ -379,7 +376,7 @@ void lt_test_rev_write_r_config(lt_handle_t *h);
  *  6. Erase the key slot.
  *  7. Repeat steps 2-6 for the Ed25519 curve.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_ecc_key_generate(lt_handle_t *h);
 
@@ -397,7 +394,7 @@ void lt_test_rev_ecc_key_generate(lt_handle_t *h);
  *  8. Repeat steps 2-6 for the Ed25519 curve with pre-generated keys (without storing invalid private key - that cannot
  * be checked in the case of Ed25519).
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_ecc_key_store(lt_handle_t *h);
 
@@ -411,7 +408,7 @@ void lt_test_rev_ecc_key_store(lt_handle_t *h);
  *  3. Get random count (from step 2) of random bytes from TROPIC01.
  *  4. Dump the random bytes from TROPIC01 into the log.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_random_value_get(lt_handle_t *h);
 
@@ -428,7 +425,7 @@ void lt_test_rev_random_value_get(lt_handle_t *h);
  *  6. Do an attempt with the correct PIN with all the used slots and compare the cryptographic keys with the one from
  * the setup phase.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_mac_and_destroy(lt_handle_t *h);
 
@@ -443,10 +440,14 @@ void lt_test_rev_mac_and_destroy(lt_handle_t *h);
  *  5. Print the FW log into the test log if enabled or it's length is not zero.
  *  6. Reboot into Maintenance mode and repeat steps 2-5.
  *
- * @param h     Device's handle
+ * @param h     Handle for communication with TROPIC01
  */
 void lt_test_rev_get_log_req(lt_handle_t *h);
 
 /** @} */  // end of libtropic_funct_tests group
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // LT_LIBTROPIC_FUNC_TESTS_H

@@ -2,9 +2,9 @@
 #define LT_LIBTROPIC_PORT_H
 
 /**
- * @defgroup group_port_functions Layer 1 port specific functions
- * @brief Defined for each supported platform.
- * @details Function used by host platform during l1 operations. Check 'hal/port/' folder to see what is supported.
+ * @defgroup group_port_functions 6.2. Layer 1: Port Interface
+ * @brief Functions defined for each supported platform.
+ * @details Function used by host platform during l1 operations. Check 'hal/' folder to see what is supported.
  *          All of these functions have to be impemented by the port for libtropic to work.
  *
  * @{
@@ -13,7 +13,7 @@
 /**
  * @file libtropic_port.h
  * @brief Header file with layer 1 interfaces which are defined based on host platform
- * @author Tropic Square s.r.o.
+ * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
  * @license For the license see file LICENSE.txt file in the root directory of this source tree.
  */
@@ -22,10 +22,14 @@
 
 #include "libtropic_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Max length of a path to a device in the device tree.
  */
-#define DEVICE_PATH_MAX_LEN 256
+#define LT_DEVICE_PATH_MAX_LEN 256
 
 /**
  * @brief Platform defined init function. Init resources and set pins as needed.
@@ -107,6 +111,8 @@ lt_ret_t lt_port_delay_on_int(lt_l2_state_t *s2, uint32_t ms);
 #endif
 /**
  * @brief Fill buffer with random bytes, platform defined function.
+ * @note This function should use some cryptographically secure mechanism to generate the random bytes. Its speed should
+ * not be a concern, as this function is not called often.
  *
  * @param s2          Structure holding l2 state
  * @param buff        Buffer to be filled
@@ -119,4 +125,8 @@ lt_ret_t lt_port_random_bytes(lt_l2_state_t *s2, void *buff, size_t count);
 
 /** @} */  // end of group_port_functions
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // LT_LIBTROPIC_PORT_H

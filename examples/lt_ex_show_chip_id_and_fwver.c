@@ -3,8 +3,7 @@
  * @name Show chip ID and firmware versions
  * @brief This example shows how to read TROPIC01's chip ID and firmware versions
  * @note We recommend reading TROPIC01's datasheet before diving into this example!
- *
- * @author Tropic Square s.r.o.
+ * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
  * @license For the license see file LICENSE.txt file in the root directory of this source tree.
  */
@@ -17,178 +16,6 @@
 #include "libtropic_logging.h"
 #include "string.h"
 
-static void print_header_boot_v1_0_1(uint8_t *data, bank_id_t bank_id)
-{
-    struct header_boot_v1_t *p_h = (struct header_boot_v1_t *)data;
-    switch (bank_id) {
-        case FW_BANK_FW1:
-            LT_LOG_INFO("    Firmware bank 1 header:");
-            break;
-        case FW_BANK_FW2:
-            LT_LOG_INFO("    Firmware bank 2 header:");
-            break;
-        case FW_BANK_SPECT1:
-            LT_LOG_INFO("    SPECT bank 1 header:");
-            break;
-        case FW_BANK_SPECT2:
-            LT_LOG_INFO("    SPECT bank 2 header:");
-            break;
-        default:
-            LT_LOG_ERROR("    Unknown bank ID: %d", (int)bank_id);
-            return;
-    }
-    LT_LOG_INFO("      Type:      %02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8, p_h->type[3], p_h->type[2],
-                p_h->type[1], p_h->type[0]);
-    LT_LOG_INFO("      Version:   %02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8, p_h->version[3], p_h->version[2],
-                p_h->version[1], p_h->version[0]);
-    LT_LOG_INFO("      Size:      %02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8, p_h->size[3], p_h->size[2],
-                p_h->size[1], p_h->size[0]);
-    LT_LOG_INFO("      Git hash:  %02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8, p_h->git_hash[3], p_h->git_hash[2],
-                p_h->git_hash[1], p_h->git_hash[0]);
-    LT_LOG_INFO("      FW hash:   %02" PRIX8 "%02" PRIX8 "%02" PRIX8 "%02" PRIX8, p_h->hash[3], p_h->hash[2],
-                p_h->hash[1], p_h->hash[0]);
-}
-
-static void print_all_headers_v1(lt_handle_t *h)
-{
-    uint8_t header[LT_L2_GET_INFO_FW_HEADER_SIZE] = {0};
-
-    // Read header from FW_BANK_FW1
-    LT_LOG_INFO("Reading firmware headers in bank %d", (int)FW_BANK_FW1);
-    lt_ret_t ret = lt_get_info_fw_bank(h, FW_BANK_FW1, header, sizeof(header));
-    if (ret == LT_OK) {
-        print_header_boot_v1_0_1(header, FW_BANK_FW1);
-    }
-    else {
-        LT_LOG_ERROR("Failed to get FW bank %d header, ret=%s", (int)FW_BANK_FW1, lt_ret_verbose(ret));
-        return;
-    }
-
-    // Read header from FW_BANK_FW2
-    LT_LOG_INFO("Reading firmware headers in bank %d", (int)FW_BANK_FW2);
-    memset(header, 0, sizeof(header));
-    ret = lt_get_info_fw_bank(h, FW_BANK_FW2, header, sizeof(header));
-    if (ret == LT_OK) {
-        print_header_boot_v1_0_1(header, FW_BANK_FW2);
-    }
-    else {
-        LT_LOG_ERROR("Failed to get FW bank %d header, ret=%s", (int)FW_BANK_FW2, lt_ret_verbose(ret));
-        return;
-    }
-
-    // Read header from FW_BANK_SPECT1
-    LT_LOG_INFO("Reading SPECT headers in bank %d", (int)FW_BANK_SPECT1);
-    memset(header, 0, sizeof(header));
-    ret = lt_get_info_fw_bank(h, FW_BANK_SPECT1, header, sizeof(header));
-    if (ret == LT_OK) {
-        print_header_boot_v1_0_1(header, FW_BANK_SPECT1);
-    }
-    else {
-        LT_LOG_ERROR("Failed to get SPECT bank %d header, ret=%s", (int)FW_BANK_SPECT1, lt_ret_verbose(ret));
-        return;
-    }
-
-    // Read header from FW_BANK_SPECT2
-    LT_LOG_INFO("Reading SPECT headers in bank %d", (int)FW_BANK_SPECT2);
-    memset(header, 0, sizeof(header));
-    ret = lt_get_info_fw_bank(h, FW_BANK_SPECT2, header, sizeof(header));
-    if (ret == LT_OK) {
-        print_header_boot_v1_0_1(header, FW_BANK_SPECT2);
-    }
-    else {
-        LT_LOG_ERROR("Failed to get SPECT bank %d header, ret=%s", (int)FW_BANK_SPECT2, lt_ret_verbose(ret));
-        return;
-    }
-}
-
-// This function prints the header in the new format used in bootloader version 2.0.1
-static void print_header_boot_v2_0_1(uint8_t *data, bank_id_t bank_id)
-{
-    struct header_boot_v2_t *p_h = (struct header_boot_v2_t *)data;
-    switch (bank_id) {
-        case FW_BANK_FW1:
-            LT_LOG_INFO("    Firmware bank 1 header:");
-            break;
-        case FW_BANK_FW2:
-            LT_LOG_INFO("    Firmware bank 2 header:");
-            break;
-        case FW_BANK_SPECT1:
-            LT_LOG_INFO("    SPECT bank 1 header:");
-            break;
-        case FW_BANK_SPECT2:
-            LT_LOG_INFO("    SPECT bank 2 header:");
-            break;
-        default:
-            LT_LOG_ERROR("    Unknown bank ID: %d", (int)bank_id);
-            return;
-    }
-    LT_LOG_INFO("      Type:               %04" PRIX16, p_h->type);
-    LT_LOG_INFO("      Padding:            %02" PRIX8, p_h->padding);
-    LT_LOG_INFO("      FW header version:  %02" PRIX8, p_h->header_version);
-    LT_LOG_INFO("      Version:            %08" PRIX32, p_h->ver);
-    LT_LOG_INFO("      Size:               %08" PRIX32, p_h->size);
-    LT_LOG_INFO("      Git hash:           %08" PRIX32, p_h->git_hash);
-    // Hash str has 32B
-    char hash_str[32 * 2 + 1] = {0};
-    for (int i = 0; i < 32; i++) {
-        snprintf(hash_str + i * 2, sizeof(hash_str) - i * 2, "%02" PRIX8 "", p_h->hash[i]);
-    }
-    LT_LOG_INFO("      Hash:          %s", hash_str);
-    LT_LOG_INFO("      Pair version:  %08" PRIX32, p_h->pair_version);
-}
-
-static void print_all_fw_headers_v2(lt_handle_t *h)
-{
-    uint8_t header[LT_L2_GET_INFO_FW_HEADER_SIZE] = {0};
-
-    // Read header from FW_BANK_FW1
-    LT_LOG_INFO("Reading firmware headers in bank %d", (int)FW_BANK_FW1);
-    lt_ret_t ret = lt_get_info_fw_bank(h, FW_BANK_FW1, header, sizeof(header));
-    if (ret == LT_OK) {
-        print_header_boot_v2_0_1(header, FW_BANK_FW1);
-    }
-    else {
-        LT_LOG_ERROR("Failed to get FW bank %d header, ret=%s", (int)FW_BANK_FW1, lt_ret_verbose(ret));
-        return;
-    }
-
-    // Read header from FW_BANK_FW2
-    LT_LOG_INFO("Reading firmware headers in bank %d", (int)FW_BANK_FW2);
-    memset(header, 0, sizeof(header));
-    ret = lt_get_info_fw_bank(h, FW_BANK_FW2, header, sizeof(header));
-    if (ret == LT_OK) {
-        print_header_boot_v2_0_1(header, FW_BANK_FW2);
-    }
-    else {
-        LT_LOG_ERROR("Failed to get FW bank %d header, ret=%s", (int)FW_BANK_FW2, lt_ret_verbose(ret));
-        return;
-    }
-
-    // Read header from FW_BANK_SPECT1
-    LT_LOG_INFO("Reading SPECT headers in bank %d", (int)FW_BANK_SPECT1);
-    memset(header, 0, sizeof(header));
-    ret = lt_get_info_fw_bank(h, FW_BANK_SPECT1, header, sizeof(header));
-    if (ret == LT_OK) {
-        print_header_boot_v2_0_1(header, FW_BANK_SPECT1);
-    }
-    else {
-        LT_LOG_ERROR("Failed to get SPECT bank %d header, ret=%s", (int)FW_BANK_SPECT1, lt_ret_verbose(ret));
-        return;
-    }
-
-    // Read header from FW_BANK_SPECT2
-    LT_LOG_INFO("Reading SPECT headers in bank %d", (int)FW_BANK_SPECT2);
-    memset(header, 0, sizeof(header));
-    ret = lt_get_info_fw_bank(h, FW_BANK_SPECT2, header, sizeof(header));
-    if (ret == LT_OK) {
-        print_header_boot_v2_0_1(header, FW_BANK_SPECT2);
-    }
-    else {
-        LT_LOG_ERROR("Failed to get SPECT bank %d header, ret=%s", (int)FW_BANK_SPECT2, lt_ret_verbose(ret));
-        return;
-    }
-}
-
 int lt_ex_show_chip_id_and_fwver(lt_handle_t *h)
 {
     LT_LOG_INFO("=============================================================");
@@ -196,109 +23,114 @@ int lt_ex_show_chip_id_and_fwver(lt_handle_t *h)
     LT_LOG_INFO("=============================================================");
 
     // This variable is reused on more places in this example to store different firmware versions
-    uint8_t fw_ver[LT_L2_GET_INFO_RISCV_FW_SIZE] = {0};
+    uint8_t fw_ver[TR01_L2_GET_INFO_RISCV_FW_SIZE] = {0};
+    lt_ret_t ret;
 
-    lt_ret_t ret = lt_init(h);
+    LT_LOG_INFO("Initializing handle");
+    // Note: It is assumed that the `h.l2.device` and `h.l3.crypto_ctx` members were already
+    // initialized. Because these members are pointers, the assigned structures must exist throughout the whole
+    // life-cycle of the handle. Refer to the 'Get Started'->'Integrating Libtropic'->'How to Use' Section in the
+    // Libtropic documentation for more information.
+    ret = lt_init(h);
     if (ret != LT_OK) {
         LT_LOG_ERROR("Failed to initialize handle, ret=%s", lt_ret_verbose(ret));
         lt_deinit(h);
         return -1;
     }
 
-    // First we check versions of both updateable firmwares. For this we need to be in APPLICATION mode.
-    // If there are valid firmwares, chip will execute them on boot. In any case we will try to reboot into application,
-    // in case chip would be in maintenance mode (executing bootloader)
-    LT_LOG_INFO("Rebooting into APPLICATION mode to check FW versions");
-    ret = lt_reboot(h, LT_MODE_APP);
+    // First, we check versions of both updateable firmwares. To do that, we need TROPIC01 to **not** be in the Start-up
+    // Mode. If there are valid firmwares, TROPIC01 will begin to execute them automatically on boot.
+    LT_LOG_LINE();
+    LT_LOG_INFO("Sending reboot request");
+    ret = lt_reboot(h, TR01_REBOOT);
     if (ret != LT_OK) {
         LT_LOG_ERROR("lt_reboot() failed, ret=%s", lt_ret_verbose(ret));
         lt_deinit(h);
         return -1;
     }
+    LT_LOG_INFO("OK");
 
-    if (h->l2.mode == LT_MODE_APP) {
-        // App runs so we can see what firmwares are running
-        // Getting RISCV app firmware version
-        LT_LOG_INFO("Reading RISC-V FW version");
-        ret = lt_get_info_riscv_fw_ver(h, fw_ver);
-        if (ret == LT_OK) {
-            LT_LOG_INFO("Chip is executing RISC-V application FW version: %02" PRIX8 ".%02" PRIX8 ".%02" PRIX8
-                        "    (+ .%02" PRIX8 ")",
-                        fw_ver[3], fw_ver[2], fw_ver[1], fw_ver[0]);
-        }
-        else {
-            LT_LOG_ERROR("Failed to get RISC-V FW version, ret=%s", lt_ret_verbose(ret));
-            lt_deinit(h);
-            return -1;
-        }
-
-        LT_LOG_INFO("Reading SPECT FW version");
-        ret = lt_get_info_spect_fw_ver(h, fw_ver);
-        if (ret == LT_OK) {
-            LT_LOG_INFO("Chip is executing SPECT firmware version: %02" PRIX8 ".%02" PRIX8 ".%02" PRIX8
-                        "    (+ .%02" PRIX8 ")",
-                        fw_ver[3], fw_ver[2], fw_ver[1], fw_ver[0]);
-        }
-        else {
-            LT_LOG_ERROR("Failed to get SPECT firmware version, ret=%s", lt_ret_verbose(ret));
-            lt_deinit(h);
-            return -1;
-        }
-    }
-    else {
-        LT_LOG_ERROR("Chip couldn't get into APP mode, APP and SPECT firmwares in fw banks are not valid");
-    }
     LT_LOG_LINE();
-
-    LT_LOG_INFO("Rebooting into MAINTENANCE mode to check bootloader version and fw bank headers");
-    ret = lt_reboot(h, LT_MODE_MAINTENANCE);
+    LT_LOG_INFO("Reading RISC-V FW version");
+    ret = lt_get_info_riscv_fw_ver(h, fw_ver);
     if (ret != LT_OK) {
-        LT_LOG_ERROR("Failed to reboot into MAINTENANCE mode, ret=%s", lt_ret_verbose(ret));
+        LT_LOG_ERROR("Failed to get RISC-V FW version, ret=%s", lt_ret_verbose(ret));
         lt_deinit(h);
         return -1;
     }
+    LT_LOG_INFO("OK");
 
-    if (h->l2.mode == LT_MODE_MAINTENANCE) {
-        LT_LOG_INFO("Reading RISC-V FW version for bootloader version");
-        ret = lt_get_info_riscv_fw_ver(h, fw_ver);
-        if (ret != LT_OK) {
-            LT_LOG_ERROR("Failed to get RISC-V FW version, ret=%s", lt_ret_verbose(ret));
-            lt_deinit(h);
-            return -1;
-        }
+    LT_LOG_INFO("RISC-V FW version: %02" PRIX8 ".%02" PRIX8 ".%02" PRIX8 " (+ .%02" PRIX8 ")", fw_ver[3], fw_ver[2],
+                fw_ver[1], fw_ver[0]);
 
-        // Checking if bootloader version is 1.0.1
-        if (((fw_ver[3] & 0x7f) == 1) && (fw_ver[2] == 0) && (fw_ver[1] == 1) && (fw_ver[0] == 0)) {
-            LT_LOG_INFO("Bootloader version: %02" PRIX8 ".%02" PRIX8 ".%02" PRIX8 "    (+ .%02" PRIX8 ")",
-                        fw_ver[3] & 0x7f, fw_ver[2], fw_ver[1], fw_ver[0]);
-
-            print_all_headers_v1(h);
-        }
-        else {
-            // Checking if bootloader version is 2.0.1
-            if (((fw_ver[3] & 0x7f) == 2) && (fw_ver[2] == 0) && (fw_ver[1] == 1) && (fw_ver[0] == 0)) {
-                LT_LOG_INFO("Bootloader version: %02" PRIX8 ".%02" PRIX8 ".%02" PRIX8 "    (+ .%02" PRIX8 ")",
-                            fw_ver[3] & 0x7f, fw_ver[2], fw_ver[1], fw_ver[0]);
-                print_all_fw_headers_v2(h);
-            }
-            else {
-                LT_LOG_ERROR("Unknown bootloader version: %02" PRIX8 ".%02" PRIX8 ".%02" PRIX8 ".%02" PRIX8,
-                             fw_ver[3] & 0x7f, fw_ver[2], fw_ver[1], fw_ver[0]);
-                lt_deinit(h);
-                return -1;
-            }
-            LT_LOG_LINE();
-        }
-    }
-    else {
-        LT_LOG_ERROR("Chip couldn't get into MAINTENANCE mode");
+    LT_LOG_INFO();
+    LT_LOG_INFO("Reading SPECT FW version");
+    ret = lt_get_info_spect_fw_ver(h, fw_ver);
+    if (ret != LT_OK) {
+        LT_LOG_ERROR("Failed to get SPECT FW version, ret=%s", lt_ret_verbose(ret));
         lt_deinit(h);
         return -1;
     }
+    LT_LOG_INFO("OK");
+
+    LT_LOG_INFO("SPECT FW version: %02" PRIX8 ".%02" PRIX8 ".%02" PRIX8 " (+ .%02" PRIX8 ")", fw_ver[3], fw_ver[2],
+                fw_ver[1], fw_ver[0]);
+
     LT_LOG_LINE();
+    LT_LOG_INFO(
+        "Sending maintenance reboot request to check bootloader version and FW bank headers in the Startup Mode");
+    ret = lt_reboot(h, TR01_MAINTENANCE_REBOOT);
+    if (ret != LT_OK) {
+        LT_LOG_ERROR("lt_reboot() failed, ret=%s", lt_ret_verbose(ret));
+        lt_deinit(h);
+        return -1;
+    }
+    LT_LOG_INFO("OK");
+
+    // When TROPIC01 is in Start-up Mode, we can get RISC-V bootloader version the same way as we got RISC-V FW version.
+    LT_LOG_LINE();
+    LT_LOG_INFO("Reading RISC-V bootloader version");
+    ret = lt_get_info_riscv_fw_ver(h, fw_ver);
+    if (ret != LT_OK) {
+        LT_LOG_ERROR("Failed to get RISC-V bootloader version, ret=%s", lt_ret_verbose(ret));
+        lt_deinit(h);
+        return -1;
+    }
+    LT_LOG_INFO("OK");
+
+    LT_LOG_INFO("RISC-V bootloader version: %02" PRIX8 ".%02" PRIX8 ".%02" PRIX8 " (+ .%02" PRIX8 ")", fw_ver[3] & 0x7f,
+                fw_ver[2], fw_ver[1], fw_ver[0]);
+
+    LT_LOG_LINE();
+    LT_LOG_INFO("Reading and printing headers of all 4 FW banks:");
+    ret = lt_print_fw_header(h, TR01_FW_BANK_FW1, printf);
+    if (ret != LT_OK) {
+        LT_LOG_ERROR("Failed to print TR01_FW_BANK_FW1 header, ret=%s", lt_ret_verbose(ret));
+        lt_deinit(h);
+        return -1;
+    }
+    ret = lt_print_fw_header(h, TR01_FW_BANK_FW2, printf);
+    if (ret != LT_OK) {
+        LT_LOG_ERROR("Failed to print TR01_FW_BANK_FW2 header, ret=%s", lt_ret_verbose(ret));
+        lt_deinit(h);
+        return -1;
+    }
+    ret = lt_print_fw_header(h, TR01_FW_BANK_SPECT1, printf);
+    if (ret != LT_OK) {
+        LT_LOG_ERROR("Failed to print TR01_FW_BANK_SPECT1 header, ret=%s", lt_ret_verbose(ret));
+        lt_deinit(h);
+        return -1;
+    }
+    ret = lt_print_fw_header(h, TR01_FW_BANK_SPECT2, printf);
+    if (ret != LT_OK) {
+        LT_LOG_ERROR("Failed to print TR01_FW_BANK_SPECT2 header, ret=%s", lt_ret_verbose(ret));
+        lt_deinit(h);
+        return -1;
+    }
 
     struct lt_chip_id_t chip_id = {0};
 
+    LT_LOG_LINE();
     LT_LOG_INFO("Reading Chip ID:");
     ret = lt_get_info_chip_id(h, &chip_id);
     if (ret != LT_OK) {
@@ -313,8 +145,18 @@ int lt_ex_show_chip_id_and_fwver(lt_handle_t *h)
         lt_deinit(h);
         return -1;
     }
-    LT_LOG_LINE();
 
+    LT_LOG_LINE();
+    LT_LOG_INFO("Sending reboot request");
+    ret = lt_reboot(h, TR01_REBOOT);
+    if (ret != LT_OK) {
+        LT_LOG_ERROR("lt_reboot() failed, ret=%s", lt_ret_verbose(ret));
+        lt_deinit(h);
+        return -1;
+    }
+    LT_LOG_INFO("OK, TROPIC01 is executing Application FW now");
+
+    LT_LOG_LINE();
     LT_LOG_INFO("Deinitializing handle");
     ret = lt_deinit(h);
     if (LT_OK != ret) {

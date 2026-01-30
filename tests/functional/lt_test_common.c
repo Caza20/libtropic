@@ -1,7 +1,7 @@
 /**
  * @file lt_test_common.c
- * @brief Common variables for functional tests.
- * @author Tropic Square s.r.o.
+ * @brief Common variables and functions for functional tests.
+ * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
  * @license For the license see file LICENSE.txt file in the root directory of this source tree.
  */
@@ -56,7 +56,7 @@ void hexdump_8byte(const uint8_t *data, uint16_t size)
 int chip_id_printf_wrapper(const char *format, ...)
 {
     int ret;
-    char buff[CHIP_ID_FIELD_MAX_SIZE * 3];
+    char buff[LT_CHIP_ID_FIELD_MAX_SIZE * 3];
     va_list args;
 
     // Format the message

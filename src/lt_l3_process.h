@@ -2,9 +2,8 @@
 #define LT_L3_TRANSFER_H
 
 /**
- * @defgroup group_l3_functions Layer 3 transfer functions
- * @brief Used internally
- * @details Function used during l3 operation.
+ * @defgroup group_l3_functions 4.1. Layer 3: Encrypt/Decrypt
+ * @brief Functions for Layer 3 packet encrypting/decrypting
  *
  * @{
  */
@@ -12,36 +11,54 @@
 /**
  * @file lt_l3_process.h
  * @brief Layer 3 transfer functions declarations
- * @author Tropic Square s.r.o.
+ * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
  * @license For the license see file LICENSE.txt file in the root directory of this source tree.
  */
 
 #include "libtropic_common.h"
 
-/** @brief L3 RESULT ﬁeld Value */
-#define L3_RESULT_OK 0xC3u
-/** @brief L3 RESULT ﬁeld Value */
-#define L3_RESULT_FAIL 0x3Cu
-/** @brief L3 RESULT ﬁeld Value */
-#define L3_RESULT_UNAUTHORIZED 0x01u
-/** @brief L3 RESULT ﬁeld Value */
-#define L3_RESULT_INVALID_CMD 0x02u
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/** @brief L3 RESULT ﬁeld Value returned from ecc_key_read */
-#define L3_ECC_INVALID_KEY 0x12u
-/** @brief L3 RESULT ﬁeld Value returned from pairing_key_read */
-#define L3_PAIRING_KEY_EMPTY 0x15u
-/** @brief L3 RESULT ﬁeld Value returned from pairing_key_read */
-#define L3_PAIRING_KEY_INVALID 0x16u
-/** @brief The slot is already written in */
-#define L3_R_MEM_DATA_WRITE_WRITE_FAIL 0x10
-/** @brief The writing operation limit is reached for the slot. */
-#define L3_R_MEM_DATA_WRITE_SLOT_EXPIRED 0x11
-/** @brief Failure to update the specified Monotonic Counter. The Monotonic Counter is already at 0. */
-#define L3_MCOUNTER_UPDATE_ERROR 0x13
-/** @brief The Monotonic Counter detects an attack and is locked. The counter must be reinitialized. */
-#define L3_MCOUNTER_COUNTER_INVALID 0x14
+/**
+ * @name Common L3 Command result codes
+ * @brief L3 Command result codes used by all commands.
+ * @{
+ */
+/** @brief L3 Command executed successfully. */
+#define TR01_L3_RESULT_OK 0xC3
+/** @brief Generic L3 command failure. */
+#define TR01_L3_RESULT_FAIL 0x3C
+/** @brief Unauthorized access. */
+#define TR01_L3_RESULT_UNAUTHORIZED 0x01
+/** @brief Invalid or unsupported L3 command identifier. */
+#define TR01_L3_RESULT_INVALID_CMD 0x02
+/** @} */
+
+/**
+ * @name Specific L3 Command result codes
+ * @brief L3 Command result codes specific to only some of the commands.
+ * @{
+ */
+/** @brief The target slot is not empty when expected to be. */
+#define TR01_L3_RESULT_SLOT_NOT_EMPTY 0x10
+/** @brief The target FLASH slot has expired. */
+#define TR01_L3_RESULT_SLOT_EXPIRED 0x11
+/** @brief The key in selected slot is invalid or corrupted. */
+#define TR01_L3_RESULT_INVALID_KEY 0x12
+/** @brief Update operation failed (i.e. mcounter done). */
+#define TR01_L3_RESULT_UPDATE_ERR 0x13
+/** @brief The counter is disabled or has failed. */
+#define TR01_L3_RESULT_COUNTER_INVALID 0x14
+/** @brief The requested slot is empty and contains no valid data. */
+#define TR01_L3_RESULT_SLOT_EMPTY 0x15
+/** @brief The slot content is invalidated. */
+#define TR01_L3_RESULT_SLOT_INVALID 0x16
+/** @brief A hardware error occurred during a write operation. */
+#define TR01_L3_RESULT_HARDWARE_FAIL 0x17
+/** @} */
 
 /**
  * @brief Encrypts content of L3 buffer and fills it with cyphertext ready to be sent to TROPIC01.
@@ -63,18 +80,6 @@ lt_ret_t lt_l3_encrypt_request(lt_l3_state_t *s3) __attribute__((warn_unused_res
  */
 lt_ret_t lt_l3_decrypt_response(lt_l3_state_t *s3) __attribute__((warn_unused_result));
 
-#ifdef TEST
-/**
- * @brief Used to increase nonce
- *
- * @param nonce       4B long number used as nonce inside of Noise protocol
- *
- * @retval            LT_OK Function executed successfully
- * @retval            other Function did not execute successully
- */
-LT_STATIC lt_ret_t lt_l3_nonce_increase(uint8_t *nonce) __attribute__((warn_unused_result));
-#endif
-
 /**
  * @brief Invalidates host's session data
  *
@@ -84,4 +89,8 @@ void lt_l3_invalidate_host_session_data(lt_l3_state_t *s3);
 
 /** @} */  // end of group_l3_functions group
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  // LT_L3_TRANSFER_H
