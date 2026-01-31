@@ -3,7 +3,7 @@
  * @brief Test R_Mem_Data_* commands on all User Data slots
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include <inttypes.h>
@@ -12,7 +12,8 @@
 #include "libtropic_common.h"
 #include "libtropic_functional_tests.h"
 #include "libtropic_logging.h"
-#include "lt_random.h"
+#include "lt_port_wrap.h"
+#include "lt_test_common.h"
 #include "string.h"
 
 /** @brief Maximal possible size of UDATA slot in User R-Memory accross all Application FWs. */

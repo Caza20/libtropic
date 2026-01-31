@@ -3,7 +3,7 @@
  * @brief Test L2 Startup Request.
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include <string.h>
@@ -13,8 +13,9 @@
 #include "libtropic_functional_tests.h"
 #include "libtropic_l2.h"
 #include "libtropic_logging.h"
-#include "lt_l1_port_wrap.h"
 #include "lt_l2_api_structs.h"
+#include "lt_port_wrap.h"
+#include "lt_test_common.h"
 
 #define REBOOT_WAIT_ATTEMPTS 10
 

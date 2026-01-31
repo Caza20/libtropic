@@ -3,7 +3,7 @@
  * @brief Layer 2 functions definitions
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include "libtropic_l2.h"
@@ -12,11 +12,7 @@
 #include <string.h>
 
 #include "libtropic_common.h"
-<<<<<<< HEAD:src/lt_l2.c
-#include "libtropic.h"
-=======
 #include "libtropic_logging.h"
->>>>>>> upstream/master:src/libtropic_l2.c
 #include "lt_crc16.h"
 #include "lt_l1.h"
 #include "lt_l2_api_structs.h"
@@ -72,7 +68,6 @@ lt_ret_t lt_l2_receive(lt_l2_state_t *s2)
     if (ret != LT_OK) {
         return ret;
     }
-    
 
     // Fix of the chip FW bug, where several last bits of the frame may be missing
     // if the chip started to reboot. See Erratum CI_TR01_ERR_2025091800.

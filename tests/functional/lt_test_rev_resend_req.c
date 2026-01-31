@@ -3,7 +3,7 @@
  * @brief Test L2 Resend Request.
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include <string.h>
@@ -16,6 +16,7 @@
 #include "lt_l1.h"
 #include "lt_l2_api_structs.h"
 #include "lt_l2_frame_check.h"
+#include "lt_test_common.h"
 
 lt_handle_t *g_h;
 

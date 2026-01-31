@@ -3,13 +3,14 @@
  * @brief Test Sleep_Req L2 request.
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include "libtropic.h"
 #include "libtropic_common.h"
 #include "libtropic_functional_tests.h"
 #include "libtropic_logging.h"
+#include "lt_test_common.h"
 
 void lt_test_rev_sleep_req(lt_handle_t *h)
 {

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-# ---- Trezor Crypto sources 
+# ---- Trezor Crypto sources (EXPLÍCITOS, sin glob salvaje)
 set(TREZOR_CRYPTO_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/../../vendor/trezor_crypto/crypto/aes/aes.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../vendor/trezor_crypto/crypto/aes/aesgcm.c
@@ -27,6 +27,6 @@ set(LT_CAL_INC_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/../../vendor/trezor_crypto/crypto
 )
 
-# ---- export 
+# ---- export al padre
 set(LT_CAL_SRCS ${LT_CAL_SRCS} PARENT_SCOPE)
 set(LT_CAL_INC_DIRS ${LT_CAL_INC_DIRS} PARENT_SCOPE)

@@ -4,7 +4,7 @@
  * For more info please refer to ODN_TR01_app_002_pin_verif.pdf
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include <inttypes.h>
@@ -13,9 +13,6 @@
 #include "libtropic_examples.h"
 #include "libtropic_logging.h"
 #include "string.h"
-
-// Needed to access to lt_random_bytes()
-#include "lt_random.h"
 // Needed to access HMAC_SHA256
 #include "lt_hmac_sha256.h"
 
@@ -515,9 +512,9 @@ int lt_ex_macandd(lt_handle_t *h)
     LT_LOG_LINE();
 
     LT_LOG_INFO("Initializing Mac And Destroy");
-    LT_LOG_INFO("Generating random master_secret...");
+    LT_LOG_INFO("Generating random master_secret (using TROPIC01's RNG)...");
     uint8_t master_secret[TR01_MAC_AND_DESTROY_MASTER_SECRET_SIZE] = {0};
-    ret = lt_random_bytes(h, master_secret, TR01_MAC_AND_DESTROY_MASTER_SECRET_SIZE);
+    ret = lt_random_value_get(h, master_secret, TR01_MAC_AND_DESTROY_MASTER_SECRET_SIZE);
     if (ret != LT_OK) {
         LT_LOG_ERROR("Failed to get random bytes, ret=%s", lt_ret_verbose(ret));
         lt_session_abort(h);
@@ -536,7 +533,7 @@ int lt_ex_macandd(lt_handle_t *h)
     LT_LOG_INFO("Generated master_secret: %s", print_buff);
 
     // Set the PIN and log out the final_key
-    LT_LOG("Setting the user PIN...");
+    LT_LOG_INFO("Setting the user PIN...");
     ret = lt_new_PIN_setup(h, master_secret, pin, sizeof(pin), NULL, sizeof(additional_data), final_key_initialized);
     if (LT_OK != ret) {
         LT_LOG_ERROR("Failed to set the user PIN, ret=%s", lt_ret_verbose(ret));

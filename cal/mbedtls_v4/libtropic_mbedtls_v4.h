@@ -6,12 +6,17 @@
  * @brief MbedTLS v4.0.0 public declarations.
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wredundant-decls"
-#include "psa/crypto.h"
+// #include "psa/crypto.h"
+
+#include "mbedtls/ecdh.h"
+#include "mbedtls/ecp.h"
+#include "mbedtls/sha256.h"
+#include "mbedtls/aes.h"
 #pragma GCC diagnostic pop
 
 /**

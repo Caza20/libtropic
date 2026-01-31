@@ -1,7 +1,7 @@
 # TROPIC01 Model
 The CMake project in the `tropic01_model/` directory builds libtropic so it can communicate with the TROPIC01 Python model. The CMake project offers the following:
 
-1. Running libtropic's [Functional Tests](../../for_contributors/functional_tests.md). The testing is managed by CTest — it executes both the test and the model automatically, along with the creation of model configuration.
+1. Running libtropic's [Functional Tests](../../for_contributors/tests/functional_tests.md). The testing is managed by CTest — it executes both the test and the model automatically, along with the creation of model configuration.
 2. Running libtropic's [Examples](../../get_started/examples/index.md).
 3. Supports most of the Libtropic's [Available CMake Options](../../get_started/integrating_libtropic/how_to_configure/index.md#available-cmake-options) — they will be propagated to Libtropic's CMake by the model's CMake.
 4. Additional CMake configuration options:
@@ -30,19 +30,24 @@ The `tropic01_model/CMakeLists.txt` uses the TCP HAL implemented in `hal/posix/t
 ## Model Setup
 First, install the model by following the README in the [ts-tvl](https://github.com/tropicsquare/ts-tvl) repository.
 
-Next, you can initialize the model with data so it behaves like a real provisioned chip. To do that, pass a YAML configuration file to the model — see the [Model Server](https://github.com/tropicsquare/ts-tvl?tab=readme-ov-file#model-server) and [Model Configuration](https://github.com/tropicsquare/ts-tvl?tab=readme-ov-file#model-configuration) sections in the [ts-tvl](https://github.com/tropicsquare/ts-tvl) repository. To create such a YAML configuration, use the `tropic01_model/create_model_cfg.py` script in the libtropic repository (example usage follows).
+Next, you can initialize the model with data so it behaves like a real provisioned chip. To do that, pass a YAML configuration file to the model — see the [Model Configuration](https://github.com/tropicsquare/ts-tvl?tab=readme-ov-file#model-configuration) section in the [ts-tvl](https://github.com/tropicsquare/ts-tvl) repository. To create a YAML configuration for use with Libtropic, refer to [Create a Model Configuration to Use with Libtropic](#create-a-model-configuration-for-use-with-libtropic).
 
 !!! question "When to Handle Model Configuration?"
     When running tests using CTest, no manual steps for creating the model configuration or initializing the model are necessary — CTest handles this. When running examples (or tests without CTest), start the model manually and apply a configuration so at least pairing key slot 0 is written to enable establishing a Secure Channel Session.
 
-Data, from which the `tropic01_model/create_model_cfg.py` script creates the YAML configuration file for the model, can be found in `tropic01_model/provisioning_data/` directory - see [Provisioning Data](provisioning_data.md) section for more information about the directory structure.
-
-To create a model configuration that will initialize the model to the state which is almost identical to the provisioned chip, the `tropic01_model/create_model_cfg.py` script is run as:
+### Create a Model Configuration for Use with Libtropic
+To create a model configuration that will initialize the model to the state which is almost identical to a provisioned chip, use the `tropic01_model/create_model_cfg.py` script. Run `--help` to see available options and their explanation:
 ```shell
 cd tropic01_model/
-python3 create_model_cfg.py --pkg-dir <path_to_the_lab_batch_package_directory>
+python3 create_model_cfg.py --help
 ```
-where `<path_to_the_lab_batch_package_directory>` is the path to one of the lab batch packages inside `tropic01_model/provisioning_data/`. Running the script creates a file named `model_cfg.yml`, which can be passed directly to the model using the `-c` flag.
+!!! info "The `--pkg-dir` Option"
+    The script expects a path to one of the lab batch packages inside `tropic01_model/provisioning_data/` - see [Provisioning Data](provisioning_data.md) for more information.
+
+The created YAML configuration can be passed directly to the model using the `-c` flag, which will start the model server and configure it:
+```shell
+model_server tcp -c model_cfg.yml
+```
 
 ## Running the Examples
 1. Switch to the `tropic01_model/` directory:
@@ -65,7 +70,9 @@ As a result, executables for each example are built in the `tropic01_model/build
 
 3. Create a YAML configuration for the model from one of the lab batch packages:
 ```shell
-python3 ../create_model_cfg.py --pkg-dir ../provisioning_data/2025-06-27T07-51-29Z__prod_C2S_T200__provisioning__lab_batch_package/
+python3 ../create_model_cfg.py \
+    --pkg-dir ../provisioning_data/2025-06-27T07-51-29Z__prod_C2S_T200__provisioning__lab_batch_package/ \
+    --riscv-fw-ver 2.0.0
 ```
 As a result, `model_cfg.yml` is created.
 
@@ -147,24 +154,3 @@ After CTest finishes, it informs about the results and saves all output to the `
     #undef LT_EX_SH0_PUB
     #define LT_EX_SH0_PUB <var_name_with_your_public_pairing_key>
     ```
-
-### Running the Tests with Coverage
-We support coverage collection for testing against the model. To activate coverage collection, add switch `-DLT_TEST_COVERAGE=1` when executing `cmake`, for example:
-```shell
-cmake -DLT_BUILD_TESTS=1 -DLT_TEST_COVERAGE=1 -DLT_CAL="mbedtls_v4" ..
-```
-
-After CTest finishes, you can use [gcovr](https://github.com/gcovr/gcovr) to export results:
-```shell
-# Execute this from the tropic01_model/ directory!
-gcovr --txt coverage_report.txt --exclude 'build/_deps/.*|\.\./tests/.*|\.\./vendor/.*'
-```
-
-We use the following parameters:
-
-- `--gcov-exclude` excludes selected files from report - we are not interested in measuring coverage of the tests themselves,
-- `--txt` chooses text output format.
-
-!!! tip "Tip: Gcovr Output Formats"
-    You can use `--html` or `--html-details` output options to export in a HTML format or `--markdown` to export in a Markdown format.
-    Check out [gcovr user guide](https://gcovr.com/en/latest/guide.html).

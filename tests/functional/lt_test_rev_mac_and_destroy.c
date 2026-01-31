@@ -3,7 +3,7 @@
  * @brief Tests MAC_And_Destroy command using HMAC-SHA256 as the Key Derivation Function (KDF).
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include <inttypes.h>
@@ -13,7 +13,8 @@
 #include "libtropic_functional_tests.h"
 #include "libtropic_logging.h"
 #include "lt_hmac_sha256.h"
-#include "lt_random.h"
+#include "lt_port_wrap.h"
+#include "lt_test_common.h"
 #include "string.h"
 
 #define PIN_LEN_MAX 2048

@@ -3,7 +3,7 @@
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  * @brief Port for communication with the TROPIC01 Model using TCP.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include "libtropic_port_posix_tcp.h"
@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -301,4 +302,17 @@ lt_ret_t lt_port_random_bytes(lt_l2_state_t *s2, void *buff, size_t count)
     }
 
     return LT_OK;
+}
+
+int lt_port_log(const char *format, ...)
+{
+    va_list args;
+    int ret;
+
+    va_start(args, format);
+    ret = vfprintf(stderr, format, args);
+    fflush(stderr);
+    va_end(args);
+
+    return ret;
 }

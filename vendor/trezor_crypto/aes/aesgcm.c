@@ -32,8 +32,6 @@ Issue Date: 30/03/2011
 #include "aesgcm.h"
 #include "mode_hdr.h"
 
-#include <stdio.h>
-
 /*  This GCM implementation needs a Galois Field multiplier for GF(2^128).
     which operates on field elements using a polynomial field representation
     x^127 + x^126 + ... + x^2 + x + 1 using the bits in a bit sequence that
@@ -71,6 +69,8 @@ Issue Date: 30/03/2011
     after calls to your revised field multiplier. To use this you need
     to add gf_convert.c to your application.  
 */
+
+#warning "AESGCM COMPILING"
 
 #if defined(__cplusplus)
 extern "C"
@@ -256,7 +256,6 @@ ret_type gcm_auth_header(                   /* authenticate the header      */
     }
 
     ctx->hdr_cnt += cnt;
-
     return RETURN_GOOD;
 }
 
@@ -542,7 +541,6 @@ ret_type gcm_decrypt_message(               /* decrypt an entire message    */
     gcm_auth_header(hdr, hdr_len, ctx);
     gcm_decrypt(msg, msg_len, ctx);
     rr = gcm_compute_tag(local_tag, tag_len, ctx);
-    
     return (rr != RETURN_GOOD || memcmp(tag, local_tag, tag_len)) ? RETURN_ERROR : RETURN_GOOD;
 }
 

@@ -3,7 +3,7 @@
  * @brief Reads contents of I-Config and prints it to the log.
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include <inttypes.h>
@@ -12,6 +12,7 @@
 #include "libtropic_common.h"
 #include "libtropic_functional_tests.h"
 #include "libtropic_logging.h"
+#include "lt_test_common.h"
 
 void lt_test_rev_read_i_config(lt_handle_t *h)
 {

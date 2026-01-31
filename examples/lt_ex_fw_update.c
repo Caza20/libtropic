@@ -4,10 +4,11 @@
  * @brief This code performs firmware update of TROPIC01 chip, works on both ABAB and ACAB silicon revisions.
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include <inttypes.h>
+#include <stdio.h>
 
 #include "fw_CPU.h"
 #include "fw_SPECT.h"
@@ -91,7 +92,7 @@ int lt_ex_fw_update(lt_handle_t *h)
     LT_LOG_INFO("OK");
 
     LT_LOG_LINE();
-    LT_LOG("Successfully updated all 4 FW banks:");
+    LT_LOG_INFO("Successfully updated all 4 FW banks:");
 
     ret = lt_print_fw_header(h, TR01_FW_BANK_FW1, printf);
     if (ret != LT_OK) {

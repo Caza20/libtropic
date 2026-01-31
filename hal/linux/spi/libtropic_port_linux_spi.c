@@ -6,7 +6,7 @@
  * @note The chip select (CS) pin is controlled separately using GPIO, as the protocol requires
  *       manual handling of the chip select.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 // SPI-related includes
@@ -28,6 +28,7 @@
 #include <string.h>
 
 // Other
+#include <stdarg.h>
 #include <sys/random.h>
 
 #include "libtropic_common.h"
@@ -306,3 +307,16 @@ lt_ret_t lt_port_delay_on_int(lt_l2_state_t *s2, uint32_t ms)
     return LT_FAIL;
 }
 #endif
+
+int lt_port_log(const char *format, ...)
+{
+    va_list args;
+    int ret;
+
+    va_start(args, format);
+    ret = vfprintf(stderr, format, args);
+    fflush(stderr);
+    va_end(args);
+
+    return ret;
+}

@@ -155,14 +155,13 @@ project(libtropic_SDK
 set(SDK_SRCS ${SDK_SRCS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/libtropic.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_crc16.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l1_port_wrap.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_port_wrap.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l1.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/libtropic_l2.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l2_frame_check.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l3_process.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/libtropic_l3.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_hkdf.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_random.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_asn1_der.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/libtropic_default_sh0_keys.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_tr01_attrs.c
@@ -176,12 +175,11 @@ set(SDK_INCS ${SDK_INCS}
     ${CMAKE_CURRENT_SOURCE_DIR}/include/libtropic_l2.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/libtropic_l3.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_crc16.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l1_port_wrap.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_port_wrap.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l1.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l2_frame_check.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_l3_process.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_hkdf.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_random.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lt_asn1_der.h
 )
 set(SDK_DIRS_PRIV ${SDK_DIRS_PRIV}
@@ -256,7 +254,7 @@ foreach(example_name ${LIBTROPIC_EXAMPLE_LIST})
     string(REPLACE " " "_" example_macro ${example_macro})
     string(APPEND LIBTROPIC_EXAMPLE_FUNCTIONS_CONTENT
         "#elif defined(${example_macro})\n"
-        "__lt_ex_return_val__ = ${example_name}(&__lt_handle__);\n"
+        "__lt_ex_return_val__ = ${example_name}(__lt_handle__);\n"
     )
 endforeach()
 
@@ -288,6 +286,7 @@ set(LIBTROPIC_TEST_LIST
     lt_test_rev_erase_r_config
     lt_test_rev_handshake_req
     lt_test_rev_mcounter
+    lt_test_rev_param_check
     lt_test_rev_get_info_req_app
     lt_test_rev_get_info_req_bootloader
     lt_test_rev_read_i_config
@@ -317,7 +316,7 @@ foreach(test_name ${LIBTROPIC_TEST_LIST})
     string(REPLACE " " "_" test_macro ${test_macro})
     string(APPEND LIBTROPIC_TEST_FUNCTIONS_CONTENT
         "#elif defined(${test_macro})\n"
-        "  ${test_name}(&__lt_handle__);\n"
+        "  ${test_name}(__lt_handle__);\n"
     )
 endforeach()
 
@@ -333,7 +332,7 @@ configure_file(
 if(LT_BUILD_TESTS)
     set(SDK_SRCS ${SDK_SRCS}
         # Special file with stuff common for testing.
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/lt_test_common.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/common/lt_test_common.c
 
         # Files which include test functions definitions.
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/lt_test_rev_ecdsa_sign.c
@@ -345,6 +344,7 @@ if(LT_BUILD_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/lt_test_rev_erase_r_config.c
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/lt_test_rev_handshake_req.c
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/lt_test_rev_mcounter.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/lt_test_rev_param_check.c
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/lt_test_rev_get_info_req_app.c
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/lt_test_rev_get_info_req_bootloader.c
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/lt_test_rev_read_i_config.c
@@ -361,8 +361,17 @@ if(LT_BUILD_TESTS)
     )
     set(SDK_DIRS_PUB ${SDK_DIRS_PUB}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/common/
+    )
+    set(SDK_DIRS_PRIV ${SDK_DIRS_PRIV}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/functional/
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/common/
     )
 endif()
+
+add_compile_definitions(
+    LT_USE_SH0_ENG_SAMPLE=1
+)
 
 add_library(tropic ${SDK_SRCS} ${SDK_INCS})
 
@@ -467,6 +476,11 @@ endif()
 
 if(LT_SEPARATE_L3_BUFF)
     target_compile_definitions(tropic PUBLIC LT_SEPARATE_L3_BUFF)
+endif()
+
+# Development option incompatible with production chips.
+if(LT_RETRIEVE_ALARM_LOG)
+    target_compile_definitions(tropic PUBLIC LT_RETRIEVE_ALARM_LOG)
 endif()
 
 

@@ -3,7 +3,7 @@
  * @brief Tests ECDSA_Sign command.
  * @copyright Copyright (c) 2020-2025 Tropic Square s.r.o.
  *
- * @license For the license see file LICENSE.txt file in the root directory of this source tree.
+ * @license For the license see LICENSE.md in the root directory of this source tree.
  */
 
 #include <inttypes.h>
@@ -13,8 +13,9 @@
 #include "libtropic_functional_tests.h"
 #include "libtropic_logging.h"
 #include "lt_l3_api_structs.h"
-#include "lt_random.h"
+#include "lt_port_wrap.h"
 #include "lt_sha256.h"
+#include "lt_test_common.h"
 #include "string.h"
 #include "uECC.h"
 
@@ -136,6 +137,7 @@ void lt_test_rev_ecdsa_sign(lt_handle_t *h)
         LT_TEST_ASSERT(LT_OK, lt_sha256_start(h->l3.crypto_ctx));
         LT_TEST_ASSERT(LT_OK, lt_sha256_update(h->l3.crypto_ctx, msg_to_sign, msg_to_sign_len));
         LT_TEST_ASSERT(LT_OK, lt_sha256_finish(h->l3.crypto_ctx, msg_hash));
+        LT_TEST_ASSERT(LT_OK, lt_sha256_deinit(h->l3.crypto_ctx));
 
         LT_LOG_INFO("Verifying signature...");
         LT_TEST_ASSERT(1, uECC_verify(read_pub_key, msg_hash, sizeof(msg_hash), rs, uECC_secp256r1()));
@@ -177,6 +179,7 @@ void lt_test_rev_ecdsa_sign(lt_handle_t *h)
         LT_TEST_ASSERT(LT_OK, lt_sha256_start(h->l3.crypto_ctx));
         LT_TEST_ASSERT(LT_OK, lt_sha256_update(h->l3.crypto_ctx, msg_to_sign, msg_to_sign_len));
         LT_TEST_ASSERT(LT_OK, lt_sha256_finish(h->l3.crypto_ctx, msg_hash));
+        LT_TEST_ASSERT(LT_OK, lt_sha256_deinit(h->l3.crypto_ctx));
 
         LT_LOG_INFO("Verifying signature...");
         LT_TEST_ASSERT(1, uECC_verify(read_pub_key, msg_hash, sizeof(msg_hash), rs, uECC_secp256r1()));
